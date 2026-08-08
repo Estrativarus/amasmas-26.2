@@ -1,5 +1,6 @@
 package com.estrativarus.amasmas;
 
+import com.estrativarus.amasmas.item.Moditems;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.world.item.CreativeModeTabs;
 import net.minecraft.world.level.block.Blocks;
@@ -26,6 +27,8 @@ public class Amasmas {
     public Amasmas(IEventBus modEventBus, ModContainer modContainer) {
         // Register the commonSetup method for modloading
         modEventBus.addListener(this::commonSetup);
+
+        Moditems.register(modEventBus);
 
         // Register ourselves for server and other game events we are interested in.
         // Note that this is necessary if and only if we want *this* class (Amasmas) to respond directly to events.
