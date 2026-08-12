@@ -1,6 +1,5 @@
 package com.estrativarus.amasmas;
 
-import com.estrativarus.amasmas.item.Moditems;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.world.item.CreativeModeTabs;
 import net.minecraft.world.level.block.Blocks;
@@ -19,7 +18,7 @@ import net.neoforged.neoforge.event.server.ServerStartingEvent;
 @Mod(Amasmas.MOD_ID)
 public class Amasmas {
     // Define mod id in a common place for everything to reference
-    public static final String MOD_ID = "amasmas";
+    public static final String MOD_ID = "Amasmas";
     // Directly reference a slf4j logger
 
     // The constructor for the mod class is the first code that is run when your mod is loaded.
@@ -28,7 +27,7 @@ public class Amasmas {
         // Register the commonSetup method for modloading
         modEventBus.addListener(this::commonSetup);
 
-        Moditems.register(modEventBus);
+
 
         // Register ourselves for server and other game events we are interested in.
         // Note that this is necessary if and only if we want *this* class (Amasmas) to respond directly to events.
