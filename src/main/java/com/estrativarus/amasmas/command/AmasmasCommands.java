@@ -521,238 +521,33 @@ public class AmasmasCommands {
                                                             return 1;
                                                         })
                                         )
+
+                        )
+                        .then(
+                                Commands.literal("vidas")
+
+                                        /*
+                                         * /amasmas vidas anadirvida <jugador> <cantidad>
+                                         */
                                         .then(
-                                                Commands.literal("vidas")
+                                                Commands.literal("anadirvida")
 
-                                                        /*
-                                                         * /amasmas vidas anadirvida <jugador> <cantidad>
-                                                         */
-                                                        .then(
-                                                                Commands.literal("anadirvida")
-
-                                                                        .requires(source ->
-                                                                                source.permissions().hasPermission(
-                                                                                        Permissions.COMMANDS_GAMEMASTER
-                                                                                )
-                                                                        )
-
-                                                                        .then(
-                                                                                Commands.argument(
-                                                                                                "jugador",
-                                                                                                EntityArgument.player()
-                                                                                        )
-
-                                                                                        .then(
-                                                                                                Commands.argument(
-                                                                                                                "cantidad",
-                                                                                                                IntegerArgumentType.integer(1)
-                                                                                                        )
-
-                                                                                                        .executes(context -> {
-
-                                                                                                            ServerPlayer jugador =
-                                                                                                                    EntityArgument.getPlayer(
-                                                                                                                            context,
-                                                                                                                            "jugador"
-                                                                                                                    );
-
-                                                                                                            int cantidad =
-                                                                                                                    IntegerArgumentType.getInteger(
-                                                                                                                            context,
-                                                                                                                            "cantidad"
-                                                                                                                    );
-
-                                                                                                            PlayerLivesSavedData datos =
-                                                                                                                    PlayerLivesSavedData.get(
-                                                                                                                            context
-                                                                                                                                    .getSource()
-                                                                                                                                    .getServer()
-                                                                                                                    );
-
-                                                                                                            int vidasAnteriores =
-                                                                                                                    datos.getVidas(
-                                                                                                                            jugador.getUUID()
-                                                                                                                    );
-
-                                                                                                            int vidasNuevas =
-                                                                                                                    datos.anadirVidas(
-                                                                                                                            jugador.getUUID(),
-                                                                                                                            cantidad
-                                                                                                                    );
-
-                                                                                                            /*
-                                                                                                             * Calculamos cuántas vidas se han
-                                                                                                             * añadido realmente.
-                                                                                                             *
-                                                                                                             * Por ejemplo, si ya tenía 3 vidas,
-                                                                                                             * se habrán añadido 0.
-                                                                                                             */
-                                                                                                            int cambioReal =
-                                                                                                                    vidasNuevas
-                                                                                                                            - vidasAnteriores;
-
-                                                                                                            Component mensaje =
-                                                                                                                    crearMensajeModificacionVidas(
-                                                                                                                            jugador,
-                                                                                                                            cambioReal,
-                                                                                                                            vidasNuevas,
-                                                                                                                            true
-                                                                                                                    );
-
-                                                                                                            context.getSource().sendSuccess(
-                                                                                                                    () -> mensaje,
-                                                                                                                    true
-                                                                                                            );
-
-                                                                                                            /*
-                                                                                                             * Avisamos también al jugador afectado,
-                                                                                                             * siempre que no sea quien ejecutó
-                                                                                                             * el comando.
-                                                                                                             */
-                                                                                                            if (context.getSource().getEntity()
-                                                                                                                    != jugador) {
-
-                                                                                                                jugador.sendSystemMessage(
-                                                                                                                        crearMensajePersonalVidas(
-                                                                                                                                cambioReal,
-                                                                                                                                vidasNuevas,
-                                                                                                                                true
-                                                                                                                        )
-                                                                                                                );
-                                                                                                            }
-
-                                                                                                            return vidasNuevas;
-                                                                                                        })
-                                                                                        )
-                                                                        )
+                                                        .requires(source ->
+                                                                source.permissions().hasPermission(
+                                                                        Permissions.COMMANDS_GAMEMASTER
+                                                                )
                                                         )
 
-                                                        /*
-                                                         * /amasmas vidas quitarvida <jugador> <cantidad>
-                                                         */
                                                         .then(
-                                                                Commands.literal("quitarvida")
-
-                                                                        .requires(source ->
-                                                                                source.permissions().hasPermission(
-                                                                                        Permissions.COMMANDS_GAMEMASTER
-                                                                                )
+                                                                Commands.argument(
+                                                                                "jugador",
+                                                                                EntityArgument.player()
                                                                         )
 
                                                                         .then(
                                                                                 Commands.argument(
-                                                                                                "jugador",
-                                                                                                EntityArgument.player()
-                                                                                        )
-
-                                                                                        .then(
-                                                                                                Commands.argument(
-                                                                                                                "cantidad",
-                                                                                                                IntegerArgumentType.integer(1)
-                                                                                                        )
-
-                                                                                                        .executes(context -> {
-
-                                                                                                            ServerPlayer jugador =
-                                                                                                                    EntityArgument.getPlayer(
-                                                                                                                            context,
-                                                                                                                            "jugador"
-                                                                                                                    );
-
-                                                                                                            int cantidad =
-                                                                                                                    IntegerArgumentType.getInteger(
-                                                                                                                            context,
-                                                                                                                            "cantidad"
-                                                                                                                    );
-
-                                                                                                            PlayerLivesSavedData datos =
-                                                                                                                    PlayerLivesSavedData.get(
-                                                                                                                            context
-                                                                                                                                    .getSource()
-                                                                                                                                    .getServer()
-                                                                                                                    );
-
-                                                                                                            int vidasAnteriores =
-                                                                                                                    datos.getVidas(
-                                                                                                                            jugador.getUUID()
-                                                                                                                    );
-
-                                                                                                            int vidasNuevas =
-                                                                                                                    datos.quitarVidas(
-                                                                                                                            jugador.getUUID(),
-                                                                                                                            cantidad
-                                                                                                                    );
-
-                                                                                                            /*
-                                                                                                             * Calculamos cuántas vidas se han
-                                                                                                             * quitado realmente.
-                                                                                                             */
-                                                                                                            int cambioReal =
-                                                                                                                    vidasAnteriores
-                                                                                                                            - vidasNuevas;
-
-                                                                                                            Component mensaje =
-                                                                                                                    crearMensajeModificacionVidas(
-                                                                                                                            jugador,
-                                                                                                                            cambioReal,
-                                                                                                                            vidasNuevas,
-                                                                                                                            false
-                                                                                                                    );
-
-                                                                                                            context.getSource().sendSuccess(
-                                                                                                                    () -> mensaje,
-                                                                                                                    true
-                                                                                                            );
-
-                                                                                                            if (context.getSource().getEntity()
-                                                                                                                    != jugador) {
-
-                                                                                                                jugador.sendSystemMessage(
-                                                                                                                        crearMensajePersonalVidas(
-                                                                                                                                cambioReal,
-                                                                                                                                vidasNuevas,
-                                                                                                                                false
-                                                                                                                        )
-                                                                                                                );
-                                                                                                            }
-
-                                                                                                            return vidasNuevas;
-                                                                                                        })
-                                                                                        )
-                                                                        )
-                                                        )
-
-                                                        /*
-                                                         * /amasmas vidas estado
-                                                         *
-                                                         * Consulta las vidas propias.
-                                                         */
-                                                        .then(
-                                                                Commands.literal("estado")
-
-                                                                        .executes(context -> {
-
-                                                                            ServerPlayer jugador =
-                                                                                    context
-                                                                                            .getSource()
-                                                                                            .getPlayerOrException();
-
-                                                                            return mostrarEstadoVidas(
-                                                                                    context.getSource(),
-                                                                                    jugador
-                                                                            );
-                                                                        })
-
-                                                                        /*
-                                                                         * /amasmas vidas estado <jugador>
-                                                                         *
-                                                                         * Cualquier jugador puede consultar
-                                                                         * las vidas de otro jugador conectado.
-                                                                         */
-                                                                        .then(
-                                                                                Commands.argument(
-                                                                                                "jugador",
-                                                                                                EntityArgument.player()
+                                                                                                "cantidad",
+                                                                                                IntegerArgumentType.integer(1)
                                                                                         )
 
                                                                                         .executes(context -> {
@@ -763,14 +558,222 @@ public class AmasmasCommands {
                                                                                                             "jugador"
                                                                                                     );
 
-                                                                                            return mostrarEstadoVidas(
-                                                                                                    context.getSource(),
-                                                                                                    jugador
+                                                                                            int cantidad =
+                                                                                                    IntegerArgumentType.getInteger(
+                                                                                                            context,
+                                                                                                            "cantidad"
+                                                                                                    );
+
+                                                                                            PlayerLivesSavedData datos =
+                                                                                                    PlayerLivesSavedData.get(
+                                                                                                            context
+                                                                                                                    .getSource()
+                                                                                                                    .getServer()
+                                                                                                    );
+
+                                                                                            int vidasAnteriores =
+                                                                                                    datos.getVidas(
+                                                                                                            jugador.getUUID()
+                                                                                                    );
+
+                                                                                            int vidasNuevas =
+                                                                                                    datos.anadirVidas(
+                                                                                                            jugador.getUUID(),
+                                                                                                            cantidad
+                                                                                                    );
+
+                                                                                            /*
+                                                                                             * Calculamos cuántas vidas se han
+                                                                                             * añadido realmente.
+                                                                                             *
+                                                                                             * Por ejemplo, si ya tenía 3 vidas,
+                                                                                             * se habrán añadido 0.
+                                                                                             */
+                                                                                            int cambioReal =
+                                                                                                    vidasNuevas
+                                                                                                            - vidasAnteriores;
+
+                                                                                            Component mensaje =
+                                                                                                    crearMensajeModificacionVidas(
+                                                                                                            jugador,
+                                                                                                            cambioReal,
+                                                                                                            vidasNuevas,
+                                                                                                            true
+                                                                                                    );
+
+                                                                                            context.getSource().sendSuccess(
+                                                                                                    () -> mensaje,
+                                                                                                    true
                                                                                             );
+
+                                                                                            /*
+                                                                                             * Avisamos también al jugador afectado,
+                                                                                             * siempre que no sea quien ejecutó
+                                                                                             * el comando.
+                                                                                             */
+                                                                                            if (context.getSource().getEntity()
+                                                                                                    != jugador) {
+
+                                                                                                jugador.sendSystemMessage(
+                                                                                                        crearMensajePersonalVidas(
+                                                                                                                cambioReal,
+                                                                                                                vidasNuevas,
+                                                                                                                true
+                                                                                                        )
+                                                                                                );
+                                                                                            }
+
+                                                                                            return vidasNuevas;
                                                                                         })
                                                                         )
                                                         )
-                                        )));
+                                        )
+
+                                        /*
+                                         * /amasmas vidas quitarvida <jugador> <cantidad>
+                                         */
+                                        .then(
+                                                Commands.literal("quitarvida")
+
+                                                        .requires(source ->
+                                                                source.permissions().hasPermission(
+                                                                        Permissions.COMMANDS_GAMEMASTER
+                                                                )
+                                                        )
+
+                                                        .then(
+                                                                Commands.argument(
+                                                                                "jugador",
+                                                                                EntityArgument.player()
+                                                                        )
+
+                                                                        .then(
+                                                                                Commands.argument(
+                                                                                                "cantidad",
+                                                                                                IntegerArgumentType.integer(1)
+                                                                                        )
+
+                                                                                        .executes(context -> {
+
+                                                                                            ServerPlayer jugador =
+                                                                                                    EntityArgument.getPlayer(
+                                                                                                            context,
+                                                                                                            "jugador"
+                                                                                                    );
+
+                                                                                            int cantidad =
+                                                                                                    IntegerArgumentType.getInteger(
+                                                                                                            context,
+                                                                                                            "cantidad"
+                                                                                                    );
+
+                                                                                            PlayerLivesSavedData datos =
+                                                                                                    PlayerLivesSavedData.get(
+                                                                                                            context
+                                                                                                                    .getSource()
+                                                                                                                    .getServer()
+                                                                                                    );
+
+                                                                                            int vidasAnteriores =
+                                                                                                    datos.getVidas(
+                                                                                                            jugador.getUUID()
+                                                                                                    );
+
+                                                                                            int vidasNuevas =
+                                                                                                    datos.quitarVidas(
+                                                                                                            jugador.getUUID(),
+                                                                                                            cantidad
+                                                                                                    );
+
+                                                                                            /*
+                                                                                             * Calculamos cuántas vidas se han
+                                                                                             * quitado realmente.
+                                                                                             */
+                                                                                            int cambioReal =
+                                                                                                    vidasAnteriores
+                                                                                                            - vidasNuevas;
+
+                                                                                            Component mensaje =
+                                                                                                    crearMensajeModificacionVidas(
+                                                                                                            jugador,
+                                                                                                            cambioReal,
+                                                                                                            vidasNuevas,
+                                                                                                            false
+                                                                                                    );
+
+                                                                                            context.getSource().sendSuccess(
+                                                                                                    () -> mensaje,
+                                                                                                    true
+                                                                                            );
+
+                                                                                            if (context.getSource().getEntity()
+                                                                                                    != jugador) {
+
+                                                                                                jugador.sendSystemMessage(
+                                                                                                        crearMensajePersonalVidas(
+                                                                                                                cambioReal,
+                                                                                                                vidasNuevas,
+                                                                                                                false
+                                                                                                        )
+                                                                                                );
+                                                                                            }
+
+                                                                                            return vidasNuevas;
+                                                                                        })
+                                                                        )
+                                                        )
+                                        )
+
+                                        /*
+                                         * /amasmas vidas estado
+                                         *
+                                         * Consulta las vidas propias.
+                                         */
+                                        .then(
+                                                Commands.literal("estado")
+
+                                                        .executes(context -> {
+
+                                                            ServerPlayer jugador =
+                                                                    context
+                                                                            .getSource()
+                                                                            .getPlayerOrException();
+
+                                                            return mostrarEstadoVidas(
+                                                                    context.getSource(),
+                                                                    jugador
+                                                            );
+                                                        })
+
+                                                        /*
+                                                         * /amasmas vidas estado <jugador>
+                                                         *
+                                                         * Cualquier jugador puede consultar
+                                                         * las vidas de otro jugador conectado.
+                                                         */
+                                                        .then(
+                                                                Commands.argument(
+                                                                                "jugador",
+                                                                                EntityArgument.player()
+                                                                        )
+
+                                                                        .executes(context -> {
+
+                                                                            ServerPlayer jugador =
+                                                                                    EntityArgument.getPlayer(
+                                                                                            context,
+                                                                                            "jugador"
+                                                                                    );
+
+                                                                            return mostrarEstadoVidas(
+                                                                                    context.getSource(),
+                                                                                    jugador
+                                                                            );
+                                                                        })
+                                                        )
+                                        )
+                        )
+        );
     }
 
     /*
