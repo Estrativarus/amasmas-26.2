@@ -316,7 +316,7 @@ public class PlayerLivesEvents {
         server.getCommands().performPrefixedCommand(
                 source,
                 "execute as @a at @s run playsound "
-                        + "minecraft:entity.wither.death "
+                        + "minecraft:entity.wither.spawn "
                         + "master @s ~ ~ ~ 1 0.5"
         );
 
