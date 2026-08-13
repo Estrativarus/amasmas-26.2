@@ -9,6 +9,7 @@ import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.event.RegisterCommandsEvent;
 import net.minecraft.server.permissions.Permissions;
+import net.minecraft.ChatFormatting;
 
 @EventBusSubscriber(modid = Amasmas.MOD_ID)
 public class AmasmasCommands {
@@ -49,11 +50,22 @@ public class AmasmasCommands {
                                                             diaActual
                                                     );
 
+                                            Component mensajeDia = Component.empty()
+
+                                                    // Texto inicial en rojo.
+                                                    .append(
+                                                            Component.literal("Día actual del servidor: ")
+                                                                    .withStyle(ChatFormatting.RED)
+                                                    )
+
+                                                    // Número del día en amarillo.
+                                                    .append(
+                                                            Component.literal(String.valueOf(diaActual))
+                                                                    .withStyle(ChatFormatting.YELLOW)
+                                                    );
+
                                             context.getSource().sendSuccess(
-                                                    () -> Component.literal(
-                                                            "Día actual del servidor: "
-                                                                    + diaActual
-                                                    ),
+                                                    () -> mensajeDia,
                                                     false
                                             );
 
@@ -67,14 +79,29 @@ public class AmasmasCommands {
                                                         siguienteCambio
                                                                 - diaActual;
 
+                                                Component mensajeSiguienteCambio = Component.empty()
+
+                                                        // Primera parte en rojo.
+                                                        .append(
+                                                                Component.literal("Próximo cambio importante: ")
+                                                                        .withStyle(ChatFormatting.RED)
+                                                        )
+
+                                                        // Día del próximo cambio en verde brillante.
+                                                        .append(
+                                                                Component.literal("día " + siguienteCambio)
+                                                                        .withStyle(ChatFormatting.GREEN)
+                                                        )
+
+                                                        // Días restantes en azul claro brillante.
+                                                        .append(
+                                                                Component.literal(
+                                                                        " (faltan " + diasRestantes + " días)"
+                                                                ).withStyle(ChatFormatting.AQUA)
+                                                        );
+
                                                 context.getSource().sendSuccess(
-                                                        () -> Component.literal(
-                                                                "Próximo cambio importante: día "
-                                                                        + siguienteCambio
-                                                                        + " (faltan "
-                                                                        + diasRestantes
-                                                                        + " días)"
-                                                        ),
+                                                        () -> mensajeSiguienteCambio,
                                                         false
                                                 );
 
