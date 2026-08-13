@@ -10,6 +10,8 @@ import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.event.RegisterCommandsEvent;
 import net.minecraft.server.permissions.Permissions;
 import net.minecraft.ChatFormatting;
+import com.estrativarus.amasmas.deathtrain.DeathTrainEvents;
+import com.estrativarus.amasmas.deathtrain.DeathTrainSavedData;
 
 @EventBusSubscriber(modid = Amasmas.MOD_ID)
 public class AmasmasCommands {
@@ -32,6 +34,8 @@ public class AmasmasCommands {
                          * /amasmas dia
                          */
                         .then(
+
+
                                 Commands.literal("dia")
                                         .executes(context -> {
 
@@ -180,6 +184,337 @@ public class AmasmasCommands {
                                                                     );
 
                                                             return nuevoDia;
+                                                        })
+                                        )
+                        )
+                        .then(
+                                Commands.literal("tormenta")
+
+                                        /*
+                                         * COMANDO:
+                                         *
+                                         * /amasmas tormenta anadirhoras <cantidad>
+                                         */
+                                        .then(
+                                                Commands.literal("anadirhoras")
+
+                                                        /*
+                                                         * Solo los administradores pueden
+                                                         * añadir horas manualmente.
+                                                         */
+                                                        .requires(source ->
+                                                                source.permissions().hasPermission(
+                                                                        Permissions.COMMANDS_GAMEMASTER
+                                                                )
+                                                        )
+
+                                                        /*
+                                                         * Añadimos el argumento <cantidad>.
+                                                         *
+                                                         * El número mínimo permitido es 1.
+                                                         */
+                                                        .then(
+                                                                Commands.argument(
+                                                                                "cantidad",
+                                                                                IntegerArgumentType.integer(1)
+                                                                        )
+
+                                                                        .executes(context -> {
+
+                                                                            /*
+                                                                             * Obtenemos el número escrito
+                                                                             * por el administrador.
+                                                                             */
+                                                                            int cantidad =
+                                                                                    IntegerArgumentType.getInteger(
+                                                                                            context,
+                                                                                            "cantidad"
+                                                                                    );
+
+                                                                            /*
+                                                                             * Obtenemos los datos persistentes
+                                                                             * del Death Train.
+                                                                             */
+                                                                            DeathTrainSavedData datos =
+                                                                                    DeathTrainSavedData.get(
+                                                                                            context
+                                                                                                    .getSource()
+                                                                                                    .getServer()
+                                                                                    );
+
+                                                                            /*
+                                                                             * Añadimos las horas.
+                                                                             */
+                                                                            datos.anadirHoras(cantidad);
+
+                                                                            /*
+                                                                             * Hacemos que los cambios se apliquen
+                                                                             * inmediatamente:
+                                                                             *
+                                                                             * - comienza la tormenta;
+                                                                             * - se actualiza UHC;
+                                                                             * - se actualiza el estado global.
+                                                                             */
+                                                                            DeathTrainEvents
+                                                                                    .actualizarEstadoDeathTrain(
+                                                                                            context
+                                                                                                    .getSource()
+                                                                                                    .getServer()
+                                                                                    );
+
+                                                                            /*
+                                                                             * Creamos el mensaje de confirmación.
+                                                                             */
+                                                                            Component mensaje =
+                                                                                    Component.empty()
+
+                                                                                            .append(
+                                                                                                    Component.literal(
+                                                                                                            "Se han añadido "
+                                                                                                    ).withStyle(
+                                                                                                            ChatFormatting.GREEN
+                                                                                                    )
+                                                                                            )
+
+                                                                                            .append(
+                                                                                                    Component.literal(
+                                                                                                            cantidad
+                                                                                                                    + " horas"
+                                                                                                    ).withStyle(
+                                                                                                            ChatFormatting.YELLOW,
+                                                                                                            ChatFormatting.BOLD
+                                                                                                    )
+                                                                                            )
+
+                                                                                            .append(
+                                                                                                    Component.literal(
+                                                                                                            " al Death Train. "
+                                                                                                    ).withStyle(
+                                                                                                            ChatFormatting.GREEN
+                                                                                                    )
+                                                                                            )
+
+                                                                                            .append(
+                                                                                                    Component.literal(
+                                                                                                            "Tiempo restante: "
+                                                                                                                    + datos
+                                                                                                                    .getHorasRestantesRedondeadas()
+                                                                                                                    + " h"
+                                                                                                    ).withStyle(
+                                                                                                            ChatFormatting.AQUA
+                                                                                                    )
+                                                                                            );
+
+                                                                            context
+                                                                                    .getSource()
+                                                                                    .sendSuccess(
+                                                                                            () -> mensaje,
+                                                                                            true
+                                                                                    );
+
+                                                                            return cantidad;
+                                                                        })
+                                                        )
+                                        )
+
+                                        /*
+                                         * COMANDO:
+                                         *
+                                         * /amasmas tormenta quitarhoras <cantidad>
+                                         */
+                                        .then(
+                                                Commands.literal("quitarhoras")
+
+                                                        /*
+                                                         * Solo los administradores pueden
+                                                         * quitar horas manualmente.
+                                                         */
+                                                        .requires(source ->
+                                                                source.permissions().hasPermission(
+                                                                        Permissions.COMMANDS_GAMEMASTER
+                                                                )
+                                                        )
+
+                                                        /*
+                                                         * Añadimos el argumento <cantidad>.
+                                                         */
+                                                        .then(
+                                                                Commands.argument(
+                                                                                "cantidad",
+                                                                                IntegerArgumentType.integer(1)
+                                                                        )
+
+                                                                        .executes(context -> {
+
+                                                                            /*
+                                                                             * Obtenemos el número escrito
+                                                                             * por el administrador.
+                                                                             */
+                                                                            int cantidad =
+                                                                                    IntegerArgumentType.getInteger(
+                                                                                            context,
+                                                                                            "cantidad"
+                                                                                    );
+
+                                                                            /*
+                                                                             * Obtenemos los datos del Death Train.
+                                                                             */
+                                                                            DeathTrainSavedData datos =
+                                                                                    DeathTrainSavedData.get(
+                                                                                            context
+                                                                                                    .getSource()
+                                                                                                    .getServer()
+                                                                                    );
+
+                                                                            /*
+                                                                             * Quitamos las horas.
+                                                                             */
+                                                                            datos.quitarHoras(cantidad);
+
+                                                                            /*
+                                                                             * Actualizamos inmediatamente el estado.
+                                                                             *
+                                                                             * Si ya no queda tiempo:
+                                                                             *
+                                                                             * - termina la tormenta;
+                                                                             * - se desactiva UHC;
+                                                                             * - los mobs dejan de renovar efectos.
+                                                                             */
+                                                                            DeathTrainEvents
+                                                                                    .actualizarEstadoDeathTrain(
+                                                                                            context
+                                                                                                    .getSource()
+                                                                                                    .getServer()
+                                                                                    );
+
+                                                                            /*
+                                                                             * Creamos el mensaje de confirmación.
+                                                                             */
+                                                                            Component mensaje =
+                                                                                    Component.empty()
+
+                                                                                            .append(
+                                                                                                    Component.literal(
+                                                                                                            "Se han quitado "
+                                                                                                    ).withStyle(
+                                                                                                            ChatFormatting.RED
+                                                                                                    )
+                                                                                            )
+
+                                                                                            .append(
+                                                                                                    Component.literal(
+                                                                                                            cantidad
+                                                                                                                    + " horas"
+                                                                                                    ).withStyle(
+                                                                                                            ChatFormatting.YELLOW,
+                                                                                                            ChatFormatting.BOLD
+                                                                                                    )
+                                                                                            )
+
+                                                                                            .append(
+                                                                                                    Component.literal(
+                                                                                                            " del Death Train. "
+                                                                                                    ).withStyle(
+                                                                                                            ChatFormatting.RED
+                                                                                                    )
+                                                                                            )
+
+                                                                                            .append(
+                                                                                                    Component.literal(
+                                                                                                            "Tiempo restante: "
+                                                                                                                    + datos
+                                                                                                                    .getHorasRestantesRedondeadas()
+                                                                                                                    + " h"
+                                                                                                    ).withStyle(
+                                                                                                            ChatFormatting.AQUA
+                                                                                                    )
+                                                                                            );
+
+                                                                            context
+                                                                                    .getSource()
+                                                                                    .sendSuccess(
+                                                                                            () -> mensaje,
+                                                                                            true
+                                                                                    );
+
+                                                                            return cantidad;
+                                                                        })
+                                                        )
+                                        )
+
+                                        /*
+                                         * COMANDO:
+                                         *
+                                         * /amasmas tormenta estado
+                                         *
+                                         * Puede utilizarlo cualquier jugador.
+                                         */
+                                        .then(
+                                                Commands.literal("estado")
+
+                                                        .executes(context -> {
+
+                                                            /*
+                                                             * Obtenemos la información guardada
+                                                             * del Death Train.
+                                                             */
+                                                            DeathTrainSavedData datos =
+                                                                    DeathTrainSavedData.get(
+                                                                            context
+                                                                                    .getSource()
+                                                                                    .getServer()
+                                                                    );
+
+                                                            Component mensaje;
+
+                                                            /*
+                                                             * Construimos un mensaje diferente
+                                                             * dependiendo de si está activo.
+                                                             */
+                                                            if (datos.estaActivo()) {
+
+                                                                mensaje = Component.empty()
+
+                                                                        .append(
+                                                                                Component.literal(
+                                                                                        "Death Train activo: "
+                                                                                ).withStyle(
+                                                                                        ChatFormatting.RED,
+                                                                                        ChatFormatting.BOLD
+                                                                                )
+                                                                        )
+
+                                                                        .append(
+                                                                                Component.literal(
+                                                                                        datos
+                                                                                                .getHorasRestantesRedondeadas()
+                                                                                                + " horas restantes"
+                                                                                ).withStyle(
+                                                                                        ChatFormatting.YELLOW
+                                                                                )
+                                                                        );
+
+                                                            } else {
+
+                                                                mensaje = Component.literal(
+                                                                        "El Death Train no está activo."
+                                                                ).withStyle(
+                                                                        ChatFormatting.GREEN
+                                                                );
+                                                            }
+
+                                                            /*
+                                                             * Enviamos el mensaje únicamente
+                                                             * a quien utilizó el comando.
+                                                             */
+                                                            context
+                                                                    .getSource()
+                                                                    .sendSuccess(
+                                                                            () -> mensaje,
+                                                                            false
+                                                                    );
+
+                                                            return 1;
                                                         })
                                         )
                         )
