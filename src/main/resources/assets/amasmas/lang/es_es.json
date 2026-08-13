@@ -1,4 +1,6 @@
 {
     "item.amasmas.botas_lanudas": "Botas lanudas",
-    "itemGroup.amasmas.amasmas_tab": "Amasmas"
+    "itemGroup.amasmas.amasmas_tab": "Amasmas",
+    "enchantment.amasmas.drenaje": "Drenaje",
+    "enchantment.amasmas.drenaje.desc": "Al matar a un enemigo recuperas un % de su vida"
   }
