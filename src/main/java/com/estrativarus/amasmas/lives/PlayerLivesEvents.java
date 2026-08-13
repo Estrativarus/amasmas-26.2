@@ -19,6 +19,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+import net.minecraft.commands.CommandSourceStack;
+import net.minecraft.network.protocol.game.ClientboundSetSubtitleTextPacket;
+import net.minecraft.network.protocol.game.ClientboundSetTitleTextPacket;
+import net.minecraft.network.protocol.game.ClientboundSetTitlesAnimationPacket;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.sounds.SoundSource;
+import net.minecraft.world.level.Level;
+import net.neoforged.neoforge.event.server.ServerStartedEvent;
+
 @EventBusSubscriber(modid = Amasmas.MOD_ID)
 public class PlayerLivesEvents {
 
@@ -61,6 +70,12 @@ public class PlayerLivesEvents {
 
         PlayerLivesSavedData datos =
                 PlayerLivesSavedData.get(server);
+
+        mostrarAvisoGlobalDeMuerte(
+                server,
+                player,
+                level
+        );
 
         /*
          * Restamos la vida primero.
@@ -206,6 +221,261 @@ public class PlayerLivesEvents {
 
         limpiarDatosTemporales(uuid);
     }
+    private static void mostrarAvisoGlobalDeMuerte(
+            MinecraftServer server,
+            ServerPlayer jugadorMuerto,
+            ServerLevel nivel
+    ) {
+
+        /*
+         * Título principal en rojo.
+         */
+        Component titulo =
+                Component.literal("¡MUERTO!")
+                        .withStyle(
+                                ChatFormatting.RED,
+                                ChatFormatting.BOLD
+                        );
+
+        /*
+         * Subtítulo:
+         *
+         * Nombre en dorado.
+         * "ha muerto" en gris.
+         */
+        Component subtitulo =
+                Component.empty()
+
+                        .append(
+                                jugadorMuerto
+                                        .getDisplayName()
+                                        .copy()
+                                        .withStyle(
+                                                ChatFormatting.GOLD,
+                                                ChatFormatting.BOLD
+                                        )
+                        )
+
+                        .append(
+                                Component.literal(" ha muerto")
+                                        .withStyle(
+                                                ChatFormatting.GRAY
+                                        )
+                        );
+
+        /*
+         * Recorremos todos los jugadores conectados.
+         */
+        for (
+                ServerPlayer jugador :
+                server.getPlayerList().getPlayers()
+        ) {
+
+            /*
+             * Tiempos del título, medidos en ticks:
+             *
+             * 10 ticks: entrada de 0,5 segundos.
+             * 70 ticks: visible durante 3,5 segundos.
+             * 20 ticks: salida de 1 segundo.
+             */
+            jugador.connection.send(
+                    new ClientboundSetTitlesAnimationPacket(
+                            10,
+                            70,
+                            20
+                    )
+            );
+
+            /*
+             * Enviamos primero el subtítulo y después el título.
+             */
+            jugador.connection.send(
+                    new ClientboundSetSubtitleTextPacket(
+                            subtitulo
+                    )
+            );
+
+            jugador.connection.send(
+                    new ClientboundSetTitleTextPacket(
+                            titulo
+                    )
+            );
+
+        }
+        /*
+         * Reproducimos el sonido individualmente en la posición
+         * de cada jugador conectado.
+         *
+         * El pitch 0.5 hace que el sonido sea más grave.
+         */
+        CommandSourceStack source =
+                server
+                        .createCommandSourceStack()
+                        .withSuppressedOutput();
+
+        server.getCommands().performPrefixedCommand(
+                source,
+                "execute as @a at @s run playsound "
+                        + "minecraft:entity.wither.death "
+                        + "master @s ~ ~ ~ 1 0.5"
+        );
+
+        /*
+         * Mensaje personalizado del chat.
+         */
+        Component mensajeChat =
+                Component.empty()
+
+                        .append(
+                                Component.literal("¡MUERTO! ")
+                                        .withStyle(
+                                                ChatFormatting.RED,
+                                                ChatFormatting.BOLD
+                                        )
+                        )
+
+                        .append(
+                                jugadorMuerto
+                                        .getDisplayName()
+                                        .copy()
+                                        .withStyle(
+                                                ChatFormatting.GOLD,
+                                                ChatFormatting.BOLD
+                                        )
+                        )
+
+                        .append(
+                                Component.literal(" ha muerto.")
+                                        .withStyle(
+                                                ChatFormatting.GRAY
+                                        )
+                        );
+
+        server.getPlayerList().broadcastSystemMessage(
+                mensajeChat,
+                false
+        );
+
+        /*
+         * Coordenadas del lugar de la muerte.
+         *
+         * floor convierte correctamente coordenadas negativas:
+         *
+         * -3.7 pasa a -4, no a -3.
+         */
+        int x = (int) Math.floor(jugadorMuerto.getX());
+        int y = (int) Math.floor(jugadorMuerto.getY());
+        int z = (int) Math.floor(jugadorMuerto.getZ());
+
+        String nombreDimension =
+                obtenerNombreDimension(nivel);
+
+        /*
+         * Mensaje con dimensión y coordenadas.
+         */
+        Component mensajeUbicacion =
+                Component.empty()
+
+                        .append(
+                                Component.literal("Lugar de la muerte: ")
+                                        .withStyle(
+                                                ChatFormatting.DARK_RED,
+                                                ChatFormatting.BOLD
+                                        )
+                        )
+
+                        .append(
+                                Component.literal(nombreDimension)
+                                        .withStyle(
+                                                ChatFormatting.LIGHT_PURPLE,
+                                                ChatFormatting.BOLD
+                                        )
+                        )
+
+                        .append(
+                                Component.literal(" | ")
+                                        .withStyle(
+                                                ChatFormatting.DARK_GRAY
+                                        )
+                        )
+
+                        .append(
+                                Component.literal("X: ")
+                                        .withStyle(
+                                                ChatFormatting.GRAY
+                                        )
+                        )
+
+                        .append(
+                                Component.literal(String.valueOf(x))
+                                        .withStyle(
+                                                ChatFormatting.AQUA
+                                        )
+                        )
+
+                        .append(
+                                Component.literal("  Y: ")
+                                        .withStyle(
+                                                ChatFormatting.GRAY
+                                        )
+                        )
+
+                        .append(
+                                Component.literal(String.valueOf(y))
+                                        .withStyle(
+                                                ChatFormatting.AQUA
+                                        )
+                        )
+
+                        .append(
+                                Component.literal("  Z: ")
+                                        .withStyle(
+                                                ChatFormatting.GRAY
+                                        )
+                        )
+
+                        .append(
+                                Component.literal(String.valueOf(z))
+                                        .withStyle(
+                                                ChatFormatting.AQUA
+                                        )
+                        );
+
+        server.getPlayerList().broadcastSystemMessage(
+                mensajeUbicacion,
+                false
+        );
+    }
+
+    private static String obtenerNombreDimension(
+            ServerLevel nivel
+    ) {
+
+        /*
+         * Dimensiones vanilla.
+         */
+        if (nivel.dimension().equals(Level.OVERWORLD)) {
+            return "Overworld";
+        }
+
+        if (nivel.dimension().equals(Level.NETHER)) {
+            return "Nether";
+        }
+
+        if (nivel.dimension().equals(Level.END)) {
+            return "The End";
+        }
+
+        /*
+         * Si la muerte ocurre en una dimensión de otro mod,
+         * mostramos su identificador completo.
+         *
+         * Ejemplo:
+         *
+         * otro_mod:dimension_especial
+         */
+        return nivel.dimension().toString();
+    }
 
     private static void limpiarDatosTemporales(
             UUID uuid
@@ -274,6 +544,31 @@ public class PlayerLivesEvents {
             default -> ChatFormatting.RED;
         };
     }
+
+    @SubscribeEvent
+    public static void onServerStarted(
+            ServerStartedEvent event
+    ) {
+
+        MinecraftServer server = event.getServer();
+
+        /*
+         * Desactivamos el mensaje vanilla de muerte.
+         *
+         * El mod enviará un mensaje coloreado propio.
+         */
+        CommandSourceStack source =
+                server
+                        .createCommandSourceStack()
+                        .withSuppressedOutput();
+
+        server.getCommands().performPrefixedCommand(
+                source,
+                "gamerule minecraft:show_death_messages false"
+        );
+    }
+
+
 
     private PlayerLivesEvents() {
     }
