@@ -27,6 +27,11 @@ import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.level.Level;
 import net.neoforged.neoforge.event.server.ServerStartedEvent;
+import net.minecraft.commands.CommandSourceStack;
+import net.minecraft.server.permissions.Permissions;
+import net.neoforged.neoforge.event.entity.player.PlayerEvent;
+import java.util.HashSet;
+import java.util.Set;
 
 @EventBusSubscriber(modid = Amasmas.MOD_ID)
 public class PlayerLivesEvents {
@@ -52,6 +57,13 @@ public class PlayerLivesEvents {
      */
     private static final Map<UUID, Boolean>
             CONSERVAR_INVENTARIO = new HashMap<>();
+
+    /*
+     * Jugadores que han consumido su última vida y deben
+     * ser procesados cuando reaparezcan.
+     */
+    private static final Set<UUID> ELIMINACIONES_PENDIENTES =
+            new HashSet<>();
 
     @SubscribeEvent
     public static void onPlayerDeath(
@@ -86,6 +98,16 @@ public class PlayerLivesEvents {
          */
         int vidasRestantes =
                 datos.registrarMuerte(player.getUUID());
+
+        /*
+         * Si acaba de gastar su última vida, lo procesaremos
+         * cuando pulse "Reaparecer".
+         */
+        if (vidasRestantes == 0) {
+            ELIMINACIONES_PENDIENTES.add(
+                    player.getUUID()
+            );
+        }
 
         boolean debeConservar =
                 vidasRestantes > 0;
@@ -567,7 +589,98 @@ public class PlayerLivesEvents {
                 "gamerule minecraft:show_death_messages false"
         );
     }
+    @SubscribeEvent
+    public static void onPlayerRespawn(
+            PlayerEvent.PlayerRespawnEvent event
+    ) {
 
+        /*
+         * Si el evento se produjo al salir del End,
+         * no es una reaparición por muerte.
+         */
+        if (event.isEndConquered()) {
+            return;
+        }
+
+        if (!(event.getEntity() instanceof ServerPlayer player)) {
+            return;
+        }
+
+        UUID uuid = player.getUUID();
+
+        /*
+         * Si no está pendiente de eliminación,
+         * no hacemos nada.
+         */
+        if (!ELIMINACIONES_PENDIENTES.remove(uuid)) {
+            return;
+        }
+
+        MinecraftServer server =
+                player.level().getServer();
+
+        /*
+         * Comprobamos si tiene permisos de operador.
+         *
+         * COMMANDS_GAMEMASTER representa el nivel habitual
+         * necesario para administrar la partida.
+         */
+        boolean esOperador =
+                player
+                        .permissions()
+                        .hasPermission(
+                                Permissions.COMMANDS_GAMEMASTER
+                        );
+
+        String nombre =
+                player.getGameProfile().name();
+
+        /*
+         * Ejecutamos el cambio después de terminar por completo
+         * el proceso actual de reaparición.
+         */
+        server.execute(() -> {
+
+            CommandSourceStack source =
+                    server
+                            .createCommandSourceStack()
+                            .withSuppressedOutput();
+
+            /*
+             * Todos los jugadores eliminados pasan primero
+             * a modo espectador.
+             */
+            server.getCommands().performPrefixedCommand(
+                    source,
+                    "gamemode spectator " + nombre
+            );
+
+            if (esOperador) {
+
+                player.sendSystemMessage(
+                        Component.literal(
+                                "Has agotado todas tus vidas. Permanecerás como espectador porque eres operador."
+                        ).withStyle(
+                                ChatFormatting.RED,
+                                ChatFormatting.BOLD
+                        )
+                );
+
+            } else {
+
+                /*
+                 * El comando ban añade al perfil a la lista de
+                 * baneados y expulsa al jugador conectado.
+                 */
+                server.getCommands().performPrefixedCommand(
+                        source,
+                        "ban "
+                                + nombre
+                                + " Has agotado todas tus vidas"
+                );
+            }
+        });
+    }
 
 
     private PlayerLivesEvents() {
