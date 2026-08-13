@@ -69,27 +69,23 @@ public class AncientFlowerEvents {
                 );
 
         /*
-         * TORCHFLOWER:
-         *
-         * Regeneración I.
+         * Comprobamos si el jugador está caminando dentro
+         * de una Torchflower o una Pitcher Plant.
          */
-        if (esTorchflower(bloqueEnLosPies)
-                || esTorchflower(bloqueDebajo)) {
-
-            aplicarRegeneracion(player);
-        }
+        boolean estaEnFlorAntigua =
+                esTorchflower(bloqueEnLosPies)
+                        || esTorchflower(bloqueDebajo)
+                        || esPitcherPlant(bloqueEnLosPies)
+                        || esPitcherPlant(bloqueDebajo);
 
         /*
-         * PITCHER PLANT:
+         * Ambas flores proporcionan los dos efectos:
          *
-         * Lentitud I.
-         *
-         * Comprobamos tanto los pies como el bloque inferior
-         * porque la planta tiene dos bloques de altura.
+         * - Regeneración I
+         * - Lentitud I
          */
-        if (esPitcherPlant(bloqueEnLosPies)
-                || esPitcherPlant(bloqueDebajo)) {
-
+        if (estaEnFlorAntigua) {
+            aplicarRegeneracion(player);
             aplicarLentitud(player);
         }
     }
