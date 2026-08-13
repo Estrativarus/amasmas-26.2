@@ -2,7 +2,9 @@
   "required": true,
   "package": "com.estrativarus.amasmas.mixin",
   "compatibilityLevel": "JAVA_25",
-  "mixins": [],
+  "mixins": [
+    "TorchflowerLightMixin"
+  ],
   "injectors": {
     "defaultRequire": 1
   },
