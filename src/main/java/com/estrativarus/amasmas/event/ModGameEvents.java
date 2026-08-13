@@ -16,27 +16,30 @@ public class ModGameEvents {
     @SubscribeEvent
     public static void onVanillaGameEvent(VanillaGameEvent event) {
 
-        // Comprobamos que el causante del evento sea un jugador.
+        // Solo procesamos eventos causados por jugadores.
         if (!(event.getCause() instanceof Player player)) {
             return;
         }
 
-        // Solamente queremos silenciar los pasos.
-        if (!event.getVanillaEvent().is(GameEvent.STEP)) {
+        // Comprobamos las botas que lleva el jugador.
+        ItemStack boots = player.getItemBySlot(EquipmentSlot.FEET);
+
+        // Si no lleva las botas lanudas, dejamos pasar la vibración.
+        if (!boots.is(ModItems.BOTAS_LANUDAS.get())) {
             return;
         }
 
-        // Obtenemos el objeto equipado en los pies.
-        ItemStack boots = player.getItemBySlot(EquipmentSlot.FEET);
-
-        // Si lleva las botas lanudas, cancelamos la vibración del paso.
-        if (boots.is(ModItems.BOTAS_LANUDAS.get())) {
+        // Los pasos siempre son silenciosos con las botas.
+        if (event.getVanillaEvent().is(GameEvent.STEP)) {
             event.setCanceled(true);
+            return;
+        }
 
-           if (event.getVanillaEvent().is(GameEvent.HIT_GROUND)
-                   && player.fallDistance <= 4.0f) {
-               event.setCanceled(true);
-           }
+        // Los aterrizajes desde poca altura también son silenciosos.
+        if (event.getVanillaEvent().is(GameEvent.HIT_GROUND)
+                && player.fallDistance <= 4.0F) {
+
+            event.setCanceled(true);
         }
     }
 
