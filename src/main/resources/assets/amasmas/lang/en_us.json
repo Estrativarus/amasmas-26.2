@@ -1,13 +1,3 @@
 {
-  "itemGroup.amasmas": "Example Mod Tab",
-  "block.amasmas.example_block": "Example Block",
-  "item.amasmas.example_item": "Example Item",
-
-  "amasmas.configuration.title": "Amasmas Configs",
-  "amasmas.configuration.section.amasmas.common.toml": "Amasmas Configs",
-  "amasmas.configuration.section.amasmas.common.toml.title": "Amasmas Configs",
-  "amasmas.configuration.items": "Item List",
-  "amasmas.configuration.logDirtBlock": "Log Dirt Block",
-  "amasmas.configuration.magicNumberIntroduction": "Magic Number Text",
-  "amasmas.configuration.magicNumber": "Magic Number"
+  "item.amasmas.botas_lanudas": "Woolly Boots"
 }
