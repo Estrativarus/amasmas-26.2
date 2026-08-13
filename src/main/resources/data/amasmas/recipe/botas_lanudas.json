@@ -1,0 +1,17 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "equipment",
+  "pattern": [
+    "L L",
+    "L L",
+    "W W"
+  ],
+  "key": {
+    "L": "minecraft:leather",
+    "W": "#minecraft:wool"
+  },
+  "result": {
+    "id": "amasmas:botas_lanudas",
+    "count": 1
+  }
+}
