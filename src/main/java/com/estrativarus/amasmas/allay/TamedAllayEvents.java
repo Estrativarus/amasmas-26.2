@@ -53,6 +53,13 @@ public class TamedAllayEvents {
      */
     private static final int ENFRIAMIENTO_ATAQUE = 20;
 
+    /*
+     * Cada manzana dorada tiene un 25 % de probabilidad
+     * de domesticar al Allay.
+     */
+    private static final float PROBABILIDAD_DOMESTICACION =
+            0.25F;
+
     @SubscribeEvent
     public static void onInteractWithAllay(
             PlayerInteractEvent.EntityInteract event
@@ -101,64 +108,130 @@ public class TamedAllayEvents {
          *
          * El Allay todavía no está domesticado.
          */
+        /*
+         * CASO 1:
+         *
+         * El Allay todavía no está domesticado.
+         */
         if (!datos.estaDomesticado(allay.getUUID())) {
 
             /*
-             * Solo se puede domesticar con una manzana dorada.
+             * Solo puede intentarse con una manzana dorada.
              */
             if (!objetoEnMano.is(Items.GOLDEN_APPLE)) {
                 return;
             }
 
-            datos.domesticar(
-                    allay.getUUID(),
-                    player.getUUID()
-            );
-
             /*
-             * Consumimos una manzana salvo que el jugador
-             * esté en creativo.
+             * Consumimos una manzana en cada intento,
+             * salvo que el jugador esté en creativo.
              */
             if (!player.getAbilities().instabuild) {
                 objetoEnMano.shrink(1);
             }
 
             /*
-             * Evitamos que recoja objetos normalmente.
+             * Realizamos la tirada de domesticación.
+             *
+             * nextFloat genera un número entre 0 y 1.
+             * Si es inferior a 0,25, el intento tiene éxito.
              */
-            allay.setCanPickUpLoot(false);
+            boolean domesticacionExitosa =
+                    allay.getRandom().nextFloat()
+                            < PROBABILIDAD_DOMESTICACION;
 
-            allay.playSound(
-                    SoundEvents.ALLAY_AMBIENT_WITH_ITEM,
-                    1.0F,
-                    1.2F
-            );
+            if (domesticacionExitosa) {
 
-            player.sendSystemMessage(
-                    Component.empty()
+                datos.domesticar(
+                        allay.getUUID(),
+                        player.getUUID()
+                );
 
-                            .append(
-                                    Component.literal("Has domesticado un ")
-                                            .withStyle(ChatFormatting.GREEN)
-                            )
+                /*
+                 * El Allay armado deja de utilizarse como
+                 * recolector vanilla.
+                 */
+                allay.setCanPickUpLoot(false);
 
-                            .append(
-                                    Component.literal("Allay")
-                                            .withStyle(
-                                                    ChatFormatting.AQUA,
-                                                    ChatFormatting.BOLD
-                                            )
-                            )
+                allay.playSound(
+                        SoundEvents.ALLAY_AMBIENT_WITH_ITEM,
+                        1.0F,
+                        1.2F
+                );
 
-                            .append(
-                                    Component.literal(".")
-                                            .withStyle(ChatFormatting.GREEN)
-                            )
-            );
+                player.sendSystemMessage(
+                        Component.empty()
+
+                                .append(
+                                        Component.literal(
+                                                "¡Has domesticado al "
+                                        ).withStyle(
+                                                ChatFormatting.GREEN
+                                        )
+                                )
+
+                                .append(
+                                        Component.literal("Allay")
+                                                .withStyle(
+                                                        ChatFormatting.AQUA,
+                                                        ChatFormatting.BOLD
+                                                )
+                                )
+
+                                .append(
+                                        Component.literal("!")
+                                                .withStyle(
+                                                        ChatFormatting.GREEN
+                                                )
+                                )
+                );
+
+            } else {
+
+                /*
+                 * El intento ha fallado.
+                 */
+                allay.playSound(
+                        SoundEvents.ALLAY_HURT,
+                        0.7F,
+                        1.4F
+                );
+
+                player.sendSystemMessage(
+                        Component.empty()
+
+                                .append(
+                                        Component.literal(
+                                                "La domesticación ha "
+                                        ).withStyle(
+                                                ChatFormatting.GRAY
+                                        )
+                                )
+
+                                .append(
+                                        Component.literal("fallado")
+                                                .withStyle(
+                                                        ChatFormatting.RED,
+                                                        ChatFormatting.BOLD
+                                                )
+                                )
+
+                                .append(
+                                        Component.literal(
+                                                ". Inténtalo con otra manzana dorada."
+                                        ).withStyle(
+                                                ChatFormatting.GRAY
+                                        )
+                                )
+                );
+            }
 
             /*
-             * Cancelamos la interacción vanilla para que el Allay
-             * no intente quedarse también con la manzana.
+             * Cancelamos la interacción vanilla tanto si la
+             * domesticación ha funcionado como si ha fallado.
+             *
+             * Así el Allay no toma la manzana como objeto
+             * para su comportamiento normal de recolección.
              */
             event.setCanceled(true);
             event.setCancellationResult(
@@ -195,51 +268,203 @@ public class TamedAllayEvents {
         /*
          * CASO 3:
          *
+         * El propietario utiliza un estofado de remolacha
+         * para curar completamente al Allay.
+         */
+        if (objetoEnMano.is(Items.BEETROOT_SOUP)) {
+
+            /*
+             * Si ya está completamente curado, no consumimos
+             * el estofado.
+             */
+            if (allay.getHealth() >= allay.getMaxHealth()) {
+
+                player.sendSystemMessage(
+                        Component.empty()
+
+                                .append(
+                                        Component.literal("El ")
+                                                .withStyle(
+                                                        ChatFormatting.GRAY
+                                                )
+                                )
+
+                                .append(
+                                        Component.literal("Allay")
+                                                .withStyle(
+                                                        ChatFormatting.AQUA,
+                                                        ChatFormatting.BOLD
+                                                )
+                                )
+
+                                .append(
+                                        Component.literal(
+                                                " ya tiene toda la vida."
+                                        ).withStyle(
+                                                ChatFormatting.GRAY
+                                        )
+                                )
+                );
+
+                event.setCanceled(true);
+                event.setCancellationResult(
+                        InteractionResult.SUCCESS
+                );
+
+                return;
+            }
+
+            /*
+             * Restauramos toda su salud.
+             */
+            allay.setHealth(
+                    allay.getMaxHealth()
+            );
+
+            /*
+             * En supervivencia consumimos el estofado
+             * y devolvemos un cuenco vacío.
+             */
+            if (!player.getAbilities().instabuild) {
+
+                objetoEnMano.shrink(1);
+
+                ItemStack cuenco =
+                        new ItemStack(Items.BOWL);
+
+                /*
+                 * Intentamos colocar el cuenco en el inventario.
+                 * Si no hay espacio, cae al suelo.
+                 */
+                if (!player.getInventory().add(cuenco)) {
+                    player.drop(
+                            cuenco,
+                            false
+                    );
+                }
+            }
+
+            /*
+             * Efectos visuales y sonoros.
+             */
+            allay.playSound(
+                    SoundEvents.PLAYER_BURP,
+                    0.8F,
+                    1.5F
+            );
+
+            player.sendSystemMessage(
+                    Component.empty()
+
+                            .append(
+                                    Component.literal("El ")
+                                            .withStyle(
+                                                    ChatFormatting.GREEN
+                                            )
+                            )
+
+                            .append(
+                                    Component.literal("Allay")
+                                            .withStyle(
+                                                    ChatFormatting.AQUA,
+                                                    ChatFormatting.BOLD
+                                            )
+                            )
+
+                            .append(
+                                    Component.literal(
+                                            " ha recuperado toda su vida."
+                                    ).withStyle(
+                                            ChatFormatting.GREEN
+                                    )
+                            )
+            );
+
+            event.setCanceled(true);
+            event.setCancellationResult(
+                    InteractionResult.SUCCESS
+            );
+
+            return;
+        }
+
+        /*
+         * CASO 4:
+         *
          * El propietario le entrega una espada o un hacha.
          */
         if (esArmaPermitida(objetoEnMano)) {
 
+            /*
+             * Guardamos una copia del arma que ya tenía el Allay.
+             *
+             * Si no tenía ninguna, será un ItemStack vacío.
+             */
             ItemStack armaAnterior =
                     allay.getMainHandItem().copy();
 
+            /*
+             * Creamos una copia del arma que lleva el jugador.
+             */
             ItemStack armaNueva =
                     objetoEnMano.copy();
 
+            /*
+             * El Allay solamente equipará una unidad.
+             */
             armaNueva.setCount(1);
 
+            /*
+             * Equipamos el arma nueva en la mano principal.
+             */
             allay.setItemSlot(
                     EquipmentSlot.MAINHAND,
                     armaNueva
             );
 
             /*
-             * Consumimos un arma del jugador.
+             * En supervivencia consumimos una unidad del arma
+             * que tiene el jugador en la mano.
              */
             if (!player.getAbilities().instabuild) {
                 objetoEnMano.shrink(1);
             }
 
             /*
-             * Si el Allay ya tenía un arma, se la devolvemos
-             * al jugador. Si no cabe, cae al suelo.
+             * Si el Allay ya tenía un arma, intentamos devolverla
+             * al inventario del propietario.
              */
             if (!armaAnterior.isEmpty()) {
 
+                /*
+                 * Si el inventario está lleno, el arma anterior
+                 * caerá al suelo junto al jugador.
+                 */
                 if (!player.getInventory().add(armaAnterior)) {
-                    player.drop(armaAnterior, false);
+                    player.drop(
+                            armaAnterior,
+                            false
+                    );
                 }
             }
 
+            /*
+             * Informamos al propietario del arma equipada.
+             */
             player.sendSystemMessage(
                     Component.empty()
 
                             .append(
-                                    Component.literal("El Allay ahora utilizará ")
-                                            .withStyle(ChatFormatting.GREEN)
+                                    Component.literal(
+                                            "El Allay ahora utilizará "
+                                    ).withStyle(
+                                            ChatFormatting.GREEN
+                                    )
                             )
 
                             .append(
-                                    armaNueva.getHoverName()
+                                    armaNueva
+                                            .getHoverName()
                                             .copy()
                                             .withStyle(
                                                     ChatFormatting.GOLD,
@@ -249,14 +474,22 @@ public class TamedAllayEvents {
 
                             .append(
                                     Component.literal(".")
-                                            .withStyle(ChatFormatting.GREEN)
+                                            .withStyle(
+                                                    ChatFormatting.GREEN
+                                            )
                             )
             );
 
+            /*
+             * Cancelamos la interacción vanilla para impedir que
+             * el Allay procese el arma como un objeto recolectable.
+             */
             event.setCanceled(true);
             event.setCancellationResult(
                     InteractionResult.SUCCESS
             );
+
+            return;
         }
     }
     private static boolean esArmaPermitida(
