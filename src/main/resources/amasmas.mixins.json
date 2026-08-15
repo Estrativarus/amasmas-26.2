@@ -1,14 +1,13 @@
 {
   "required": true,
+  "minVersion": "0.8",
   "package": "com.estrativarus.amasmas.mixin",
-  "compatibilityLevel": "JAVA_25",
+  "compatibilityLevel": "JAVA_21",
   "mixins": [
-    "TorchflowerLightMixin"
+    "TorchflowerLightMixin",
+    "PiglinBarterMixin"
   ],
   "injectors": {
     "defaultRequire": 1
-  },
-  "overwrites": {
-    "requireAnnotations": true
   }
 }
