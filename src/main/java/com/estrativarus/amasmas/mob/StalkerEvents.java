@@ -310,7 +310,7 @@ public final class StalkerEvents {
                         )
         );
 
-        stalker.setCustomNameVisible(true);
+        stalker.setCustomNameVisible(false);
 
         /*
          * El Stalker es una criatura especial y rara.

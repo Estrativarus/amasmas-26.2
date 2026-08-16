@@ -204,16 +204,11 @@ public final class ZombifiedPiglinCaptainEvents {
         /*
          * Nombre visible.
          */
-        piglin.setCustomName(
-                Component.literal(
-                        "Capitán Piglin Zombificado"
-                ).withStyle(
-                        ChatFormatting.DARK_RED,
-                        ChatFormatting.BOLD
-                )
+        SpecialMobNames.asignar(
+                piglin,
+                "Capitán Piglin Zombificado",
+                ChatFormatting.DARK_RED
         );
-
-        piglin.setCustomNameVisible(true);
 
         /*
          * Armadura completa de netherita

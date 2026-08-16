@@ -211,17 +211,11 @@ public final class LostBoggedEvents {
                         true
                 );
 
-        bogged.setCustomName(
-                Component.literal(
-                        "Bogged Perdido"
-                ).withStyle(
-                        ChatFormatting.DARK_GREEN,
-                        ChatFormatting.BOLD
-                )
+        SpecialMobNames.asignar(
+                bogged,
+                "Bogged Perdido",
+                ChatFormatting.DARK_GREEN
         );
-
-        bogged.setCustomNameVisible(true);
-
         AttributeInstance atributoVida =
                 bogged.getAttribute(
                         Attributes.MAX_HEALTH

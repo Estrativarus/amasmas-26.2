@@ -548,7 +548,7 @@ public final class SkeletonClassEvents {
                         )
         );
 
-        mob.setCustomNameVisible(true);
+        mob.setCustomNameVisible(false);
         mob.setPersistenceRequired();
     }
 

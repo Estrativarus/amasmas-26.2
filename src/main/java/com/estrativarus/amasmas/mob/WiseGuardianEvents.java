@@ -228,16 +228,12 @@ public final class WiseGuardianEvents {
         /*
          * Nombre visible sobre la entidad.
          */
-        guardian.setCustomName(
-                Component.literal(
-                        "Guardián Sabio"
-                ).withStyle(
-                        ChatFormatting.AQUA,
-                        ChatFormatting.BOLD
-                )
+        SpecialMobNames.asignar(
+                guardian,
+                "Guardián Sabio",
+                ChatFormatting.AQUA
         );
 
-        guardian.setCustomNameVisible(true);
 
         aplicarRegeneracion(guardian);
 
