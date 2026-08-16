@@ -54,6 +54,8 @@ public class ModCreativeTabs {
                              */
                             .displayItems((parameters, output) -> {
                                 output.accept(ModItems.BOTAS_LANUDAS.get());
+                                output.accept(ModItems.MANZANA_NETHERITA.get()
+                                );
                             })
 
                             .build()

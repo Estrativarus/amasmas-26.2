@@ -2,5 +2,6 @@
   "item.amasmas.botas_lanudas": "Woolly Boots",
   "itemGroup.amasmas.amasmas_tab": "Amasmas",
   "enchantment.amasmas.drenaje": "Leeching",
-  "enchantment.amasmas.drenaje.desc": "Killing an enemy restores a % of their HP"
+  "enchantment.amasmas.drenaje.desc": "Killing an enemy restores a % of their HP",
+  "item.amasmas.manzana_netherita": "Netherite Apple"
 }

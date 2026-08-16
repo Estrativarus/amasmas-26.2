@@ -13,6 +13,9 @@ import net.minecraft.world.item.equipment.EquipmentAssets;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.neoforge.registries.DeferredItem;
 import net.neoforged.neoforge.registries.DeferredRegister;
+import net.minecraft.world.food.FoodProperties;
+import net.minecraft.world.item.component.Consumable;
+import net.minecraft.world.item.component.Consumables;
 
 import java.util.Map;
 
@@ -73,6 +76,47 @@ public class ModItems {
                                     ArmorType.BOOTS
                             )
                     )
+            );
+    /*
+     * Propiedades alimenticias.
+     *
+     * La función principal no es recuperar hambre,
+     * pero le damos cuatro puntos de nutrición.
+     */
+    public static final FoodProperties
+            MANZANA_NETHERITA_FOOD =
+            new FoodProperties.Builder()
+                    .nutrition(4)
+                    .saturationModifier(1.2F)
+                    .alwaysEdible()
+                    .build();
+
+    /*
+     * Componente que permite consumir el objeto.
+     */
+    public static final Consumable
+            MANZANA_NETHERITA_CONSUMABLE =
+            Consumables
+                    .defaultFood()
+                    .build();
+
+    /*
+     * Registro de la Manzana de Netherita.
+     */
+    public static final DeferredItem<Item>
+            MANZANA_NETHERITA =
+            ITEMS.registerItem(
+                    "manzana_netherita",
+                    properties ->
+                            new NetheriteAppleItem(
+                                    properties
+                                            .stacksTo(1)
+                                            .fireResistant()
+                                            .food(
+                                                    MANZANA_NETHERITA_FOOD,
+                                                    MANZANA_NETHERITA_CONSUMABLE
+                                            )
+                            )
             );
 
     /*
