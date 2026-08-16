@@ -164,4 +164,5 @@ public class SistemaDiasSavedData extends SavedData {
     public int getEtapaDeSieteDias() {
         return Math.min(getDiaActual() / 7, 10);
     }
+
 }
