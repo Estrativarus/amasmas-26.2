@@ -20,6 +20,7 @@ public class DeathTrainEvents {
      * Evita comprobar el clima veinte veces por segundo.
      */
     private static int contadorTicks = 0;
+    private static int segundosDesdeUltimaRenovacionClima = 0;
 
     /*
      * Guarda el estado anterior para detectar:
@@ -154,6 +155,21 @@ public class DeathTrainEvents {
         boolean activo = datos.estaActivo();
 
         if (activo) {
+            segundosDesdeUltimaRenovacionClima++;
+
+            if (!estabaActivo
+                    || segundosDesdeUltimaRenovacionClima >= 30) {
+
+                server.setWeatherParameters(
+                        0,
+                        1200,
+                        true,
+                        true
+                );
+
+                segundosDesdeUltimaRenovacionClima =
+                        0;
+            }
 
             /*
              * Tormenta eléctrica obligatoria.

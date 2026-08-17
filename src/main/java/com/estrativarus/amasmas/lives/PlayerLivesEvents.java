@@ -83,10 +83,27 @@ public class PlayerLivesEvents {
         PlayerLivesSavedData datos =
                 PlayerLivesSavedData.get(server);
 
-        mostrarAvisoGlobalDeMuerte(
-                server,
-                player,
-                level
+        double muerteX =
+                player.getX();
+
+        double muerteY =
+                player.getY();
+
+        double muerteZ =
+                player.getZ();
+
+        String nombreJugador =
+                player.getName().getString();
+
+        server.execute(() ->
+                mostrarAvisoGlobalDeMuerte(
+                        server,
+                        nombreJugador,
+                        level,
+                        muerteX,
+                        muerteY,
+                        muerteZ
+                )
         );
 
         /*
@@ -245,8 +262,11 @@ public class PlayerLivesEvents {
     }
     private static void mostrarAvisoGlobalDeMuerte(
             MinecraftServer server,
-            ServerPlayer jugadorMuerto,
-            ServerLevel nivel
+            String nombreJugador,
+            ServerLevel nivel,
+            double muerteX,
+            double muerteY,
+            double muerteZ
     ) {
 
         /*
@@ -269,8 +289,7 @@ public class PlayerLivesEvents {
                 Component.empty()
 
                         .append(
-                                jugadorMuerto
-                                        .getDisplayName()
+                                Component.literal(nombreJugador)
                                         .copy()
                                         .withStyle(
                                                 ChatFormatting.GOLD,
@@ -330,17 +349,20 @@ public class PlayerLivesEvents {
          *
          * El pitch 0.5 hace que el sonido sea más grave.
          */
-        CommandSourceStack source =
-                server
-                        .createCommandSourceStack()
-                        .withSuppressedOutput();
+        server.execute(() -> {
 
-        server.getCommands().performPrefixedCommand(
-                source,
-                "execute as @a at @s run playsound "
-                        + "minecraft:entity.wither.spawn "
-                        + "master @s ~ ~ ~ 1 0.5"
-        );
+            CommandSourceStack source =
+                    server
+                            .createCommandSourceStack()
+                            .withSuppressedOutput();
+
+            server.getCommands().performPrefixedCommand(
+                    source,
+                    "execute as @a at @s run playsound "
+                            + "minecraft:entity.wither.death "
+                            + "master @s ~ ~ ~ 1 0.5"
+            );
+        });
 
         /*
          * Mensaje personalizado del chat.
@@ -357,8 +379,7 @@ public class PlayerLivesEvents {
                         )
 
                         .append(
-                                jugadorMuerto
-                                        .getDisplayName()
+                                Component.literal(nombreJugador)
                                         .copy()
                                         .withStyle(
                                                 ChatFormatting.GOLD,
@@ -385,9 +406,14 @@ public class PlayerLivesEvents {
          *
          * -3.7 pasa a -4, no a -3.
          */
-        int x = (int) Math.floor(jugadorMuerto.getX());
-        int y = (int) Math.floor(jugadorMuerto.getY());
-        int z = (int) Math.floor(jugadorMuerto.getZ());
+        int x =
+                (int) Math.floor(muerteX);
+
+        int y =
+                (int) Math.floor(muerteY);
+
+        int z =
+                (int) Math.floor(muerteZ);
 
         String nombreDimension =
                 obtenerNombreDimension(nivel);

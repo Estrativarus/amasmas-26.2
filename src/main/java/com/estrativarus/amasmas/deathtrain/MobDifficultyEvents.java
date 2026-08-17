@@ -19,7 +19,8 @@ public class MobDifficultyEvents {
      * Se renueva una vez por segundo durante el Death Train.
      * Al terminar, los efectos desaparecen rápidamente por sí solos.
      */
-    private static final int DURACION_EFECTOS = 60;
+    private static final int DURACION_EFECTOS =
+            20 * 30;
 
     @SubscribeEvent
     public static void onEntityTick(EntityTickEvent.Post event) {
@@ -48,7 +49,7 @@ public class MobDifficultyEvents {
          * Cada mob renueva los efectos una vez por segundo,
          * no veinte veces por segundo.
          */
-        if (mob.tickCount % 20 != 0) {
+        if (mob.tickCount % 200 != 0) {
             return;
         }
 

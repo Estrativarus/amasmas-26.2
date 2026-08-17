@@ -21,6 +21,8 @@ import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.event.entity.living.LivingDeathEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerInteractEvent;
 import net.neoforged.neoforge.event.tick.EntityTickEvent;
+import net.neoforged.neoforge.event.entity.EntityInvulnerabilityCheckEvent;
+
 
 import java.util.UUID;
 
@@ -852,6 +854,39 @@ public class TamedAllayEvents {
                 .eliminarAllay(
                         event.getEntity().getUUID()
                 );
+    }
+    @SubscribeEvent
+    public static void onAllayInvulnerabilityCheck(
+            EntityInvulnerabilityCheckEvent event
+    ) {
+
+        if (event.getEntity().getType()
+                != EntityTypes.ALLAY) {
+
+            return;
+        }
+
+        if (!(event.getEntity() instanceof Mob allay)) {
+            return;
+        }
+
+        if (!(allay.level() instanceof ServerLevel level)) {
+            return;
+        }
+
+        TamedAllaySavedData datos =
+                TamedAllaySavedData.get(
+                        level.getServer()
+                );
+
+        if (!datos.estaDomesticado(
+                allay.getUUID()
+        )) {
+
+            return;
+        }
+
+        event.setInvulnerable(false);
     }
     private TamedAllayEvents() {
     }
