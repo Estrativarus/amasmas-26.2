@@ -33,7 +33,7 @@ public final class GhastDifficultyEvents {
      * Mejorado = 2.
      */
     private static final int POTENCIA_EXPLOSION =
-            3;
+            6;
 
     /*
      * Comprobamos a los Ghasts una vez por segundo.

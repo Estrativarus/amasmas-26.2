@@ -56,7 +56,7 @@ public final class ZombifiedPiglinCaptainEvents {
      * 1 / 1000 = 0,001 = 0,1 %
      */
     private static final int PROBABILIDAD_CAPITAN =
-            200;
+            50;
 
     /*
      * Fuerza II:
