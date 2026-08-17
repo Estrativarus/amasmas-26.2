@@ -14,7 +14,7 @@ import net.neoforged.neoforge.event.tick.EntityTickEvent;
 @EventBusSubscriber(modid = Amasmas.MOD_ID)
 public final class GhastDifficultyEvents {
 
-    /*
+    /* a
      * Vida vanilla del Ghast:
      *
      * 10 puntos = 5 corazones.
