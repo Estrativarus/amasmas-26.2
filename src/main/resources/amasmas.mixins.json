@@ -6,7 +6,8 @@
   "mixins": [
     "TorchflowerLightMixin",
     "PiglinBarterMixin",
-    "CreeperLingeringCloudMixin"
+    "CreeperLingeringCloudMixin",
+    "EndSpikeBedrockMixin"
   ],
   "injectors": {
     "defaultRequire": 1
