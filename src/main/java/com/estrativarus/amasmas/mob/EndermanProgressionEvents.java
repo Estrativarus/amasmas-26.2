@@ -2,7 +2,9 @@ package com.estrativarus.amasmas.mob;
 
 import com.estrativarus.amasmas.Amasmas;
 import com.estrativarus.amasmas.day.SistemaDiasSavedData;
+import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.entity.EntitySpawnReason;
 import net.minecraft.world.entity.EntityTypes;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.ai.attributes.AttributeInstance;
@@ -15,11 +17,20 @@ import net.neoforged.neoforge.event.tick.EntityTickEvent;
 @EventBusSubscriber(modid = Amasmas.MOD_ID)
 public final class EndermanProgressionEvents {
 
-    private static final int DIA_DANO_AUMENTADO =
+    private static final int DIA_INICIO =
             14;
 
     private static final double DANO_DIA_14 =
             30.0D;
+
+    private static final int PROBABILIDAD_CREEPER =
+            30;
+
+    private static final String TAG_TIRADA_CREEPER =
+            "amasmas_enderman_tirada_creeper";
+
+    private static final String TAG_CONVERSION_PENDIENTE =
+            "amasmas_enderman_conversion_creeper_pendiente";
 
     @SubscribeEvent
     public static void onEndermanJoin(
@@ -50,6 +61,7 @@ public final class EndermanProgressionEvents {
                         .getDiaActual();
 
         aplicarProgresionActual(
+                level,
                 enderman,
                 diaActual
         );
@@ -90,17 +102,27 @@ public final class EndermanProgressionEvents {
                         .getDiaActual();
 
         aplicarProgresionActual(
+                level,
                 enderman,
                 diaActual
         );
     }
 
     private static void aplicarProgresionActual(
+            ServerLevel level,
             Mob enderman,
             int diaActual
     ) {
 
-        if (diaActual < DIA_DANO_AUMENTADO) {
+        if (diaActual < DIA_INICIO) {
+            return;
+        }
+
+        if (intentarConvertirEnCreeper(
+                level,
+                enderman
+        )) {
+
             return;
         }
 
@@ -128,6 +150,170 @@ public final class EndermanProgressionEvents {
                     enderman
             );
         }
+    }
+
+    private static boolean intentarConvertirEnCreeper(
+            ServerLevel level,
+            Mob enderman
+    ) {
+
+        if (enderman
+                .getPersistentData()
+                .contains(
+                        TAG_CONVERSION_PENDIENTE
+                )) {
+
+            return true;
+        }
+
+        if (enderman
+                .getPersistentData()
+                .contains(
+                        TAG_TIRADA_CREEPER
+                )) {
+
+            return false;
+        }
+
+        enderman
+                .getPersistentData()
+                .putBoolean(
+                        TAG_TIRADA_CREEPER,
+                        true
+                );
+
+        boolean debeConvertirse =
+                enderman
+                        .getRandom()
+                        .nextInt(
+                                PROBABILIDAD_CREEPER
+                        )
+                        == 0;
+
+        if (!debeConvertirse) {
+            return false;
+        }
+
+        programarConversion(
+                level,
+                enderman
+        );
+
+        return true;
+    }
+
+    private static void programarConversion(
+            ServerLevel level,
+            Mob enderman
+    ) {
+
+        enderman
+                .getPersistentData()
+                .putBoolean(
+                        TAG_CONVERSION_PENDIENTE,
+                        true
+                );
+
+        double x =
+                enderman.getX();
+
+        double y =
+                enderman.getY();
+
+        double z =
+                enderman.getZ();
+
+        float rotacionHorizontal =
+                enderman.getYRot();
+
+        float rotacionVertical =
+                enderman.getXRot();
+
+        boolean eraPersistente =
+                enderman.isPersistenceRequired();
+
+        boolean teniaNombre =
+                enderman.hasCustomName();
+
+        Component nombreAnterior =
+                enderman.getCustomName();
+
+        boolean nombreVisible =
+                enderman.isCustomNameVisible();
+
+        level.getServer().execute(() -> {
+
+            if (!enderman.isAlive()
+                    || enderman.isRemoved()) {
+
+                return;
+            }
+
+            Mob creeper =
+                    EntityTypes.CREEPER.create(
+                            level,
+                            EntitySpawnReason.CONVERSION
+                    );
+
+            if (creeper == null) {
+
+                enderman
+                        .getPersistentData()
+                        .remove(
+                                TAG_CONVERSION_PENDIENTE
+                        );
+
+                return;
+            }
+
+            creeper.setPos(
+                    x,
+                    y,
+                    z
+            );
+
+            creeper.setYRot(
+                    rotacionHorizontal
+            );
+
+            creeper.setXRot(
+                    rotacionVertical
+            );
+
+            if (teniaNombre
+                    && nombreAnterior != null) {
+
+                creeper.setCustomName(
+                        nombreAnterior.copy()
+                );
+
+                creeper.setCustomNameVisible(
+                        nombreVisible
+                );
+            }
+
+            if (eraPersistente) {
+                creeper.setPersistenceRequired();
+            }
+
+            boolean anadido =
+                    level.addFreshEntity(
+                            creeper
+                    );
+
+            if (!anadido) {
+
+                enderman
+                        .getPersistentData()
+                        .remove(
+                                TAG_CONVERSION_PENDIENTE
+                        );
+
+                return;
+            }
+
+            enderman.discard();
+        });
     }
 
     private static void aplicarEtapaDia14(

@@ -11,6 +11,10 @@ import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.event.entity.EntityJoinLevelEvent;
 import net.neoforged.neoforge.event.tick.EntityTickEvent;
+import net.minecraft.tags.DamageTypeTags;
+import net.minecraft.world.entity.Entity;
+import net.neoforged.neoforge.event.entity.living.LivingIncomingDamageEvent;
+
 
 @EventBusSubscriber(modid = Amasmas.MOD_ID)
 public final class CreeperProgressionEvents {
@@ -19,11 +23,113 @@ public final class CreeperProgressionEvents {
             7;
 
     private static final int DURACION_EFECTOS =
-            20 * 15;
+            20 * 8;
 
-    private static final int AMPLIFICADOR_VELOCIDAD =
+    private static final int AMPLIFICADOR_VELOCIDAD_1 =
             0;
 
+    private static final int AMPLIFICADOR_VELOCIDAD_2 =
+            1;
+
+    private static final int DIA_EXPLOSION_MEJORADA =
+            14;
+
+    private static final float MULTIPLICADOR_DANO_EXPLOSION =
+            2.0F;
+
+    private static final int RADIO_EXPLOSION_DIA_14 =
+            6;
+
+    private static final String TAG_EXPLOSION_DIA_14 =
+            "amasmas_creeper_explosion_dia_14";
+    @SubscribeEvent
+    public static void onCreeperExplosionDamage(
+            LivingIncomingDamageEvent event
+    ) {
+
+        if (!(event.getEntity().level()
+                instanceof ServerLevel level)) {
+
+            return;
+        }
+
+        int diaActual =
+                SistemaDiasSavedData
+                        .get(level.getServer())
+                        .getDiaActual();
+
+        if (diaActual < DIA_EXPLOSION_MEJORADA) {
+            return;
+        }
+
+        if (!event.getSource().is(
+                DamageTypeTags.IS_EXPLOSION
+        )) {
+
+            return;
+        }
+
+        Entity responsable =
+                event.getSource().getEntity();
+
+        if (responsable == null
+                || responsable.getType()
+                != EntityTypes.CREEPER) {
+
+            return;
+        }
+
+        float danoActual =
+                event.getAmount();
+
+        event.getContainer().setNewDamage(
+                danoActual
+                        * MULTIPLICADOR_DANO_EXPLOSION
+        );
+    }
+
+    private static void aplicarExplosionMejorada(
+            Mob creeper
+    ) {
+
+        if (creeper
+                .getPersistentData()
+                .contains(
+                        TAG_EXPLOSION_DIA_14
+                )) {
+
+            return;
+        }
+
+        if (!(creeper.level()
+                instanceof ServerLevel level)) {
+
+            return;
+        }
+
+        String comando =
+                "data merge entity "
+                        + creeper.getUUID()
+                        + " {ExplosionRadius:"
+                        + RADIO_EXPLOSION_DIA_14
+                        + "b}";
+
+        level.getServer()
+                .getCommands()
+                .performPrefixedCommand(
+                        level.getServer()
+                                .createCommandSourceStack()
+                                .withSuppressedOutput(),
+                        comando
+                );
+
+        creeper
+                .getPersistentData()
+                .putBoolean(
+                        TAG_EXPLOSION_DIA_14,
+                        true
+                );
+    }
     @SubscribeEvent
     public static void onCreeperJoin(
             EntityJoinLevelEvent event
@@ -81,7 +187,9 @@ public final class CreeperProgressionEvents {
             return;
         }
 
-        if (creeper.tickCount % 20 != 0) {
+        if ((creeper.tickCount
+                + creeper.getId()) % 100 != 0) {
+
             return;
         }
 
@@ -105,15 +213,30 @@ public final class CreeperProgressionEvents {
             return;
         }
 
-        aplicarEtapaDia7(
-                creeper
-        );
+        int amplificadorVelocidad;
 
         if (diaActual >= 14) {
 
-            aplicarEtapaDia14(
+            amplificadorVelocidad =
+                    AMPLIFICADOR_VELOCIDAD_2;
+
+        } else {
+
+            amplificadorVelocidad =
+                    AMPLIFICADOR_VELOCIDAD_1;
+        }
+
+        aplicarVelocidad(
+                creeper,
+                amplificadorVelocidad
+        );
+
+        if (diaActual >= DIA_EXPLOSION_MEJORADA) {
+
+            aplicarExplosionMejorada(
                     creeper
             );
+
         }
 
         if (diaActual >= 21) {
@@ -138,26 +261,79 @@ public final class CreeperProgressionEvents {
         }
     }
 
-    private static void aplicarEtapaDia7(
+    private static void aplicarExplosionDia14(
             Mob creeper
     ) {
+
+        if (creeper
+                .getPersistentData()
+                .contains(
+                        TAG_EXPLOSION_DIA_14
+                )) {
+
+            return;
+        }
+
+        creeper
+                .getPersistentData()
+                .putBoolean(
+                        TAG_EXPLOSION_DIA_14,
+                        true
+                );
+
+        if (!(creeper.level()
+                instanceof ServerLevel level)) {
+
+            return;
+        }
+
+        String uuid =
+                creeper.getUUID().toString();
+
+        String comando =
+                "data merge entity "
+                        + uuid
+                        + " {ExplosionRadius:"
+                        + RADIO_EXPLOSION_DIA_14
+                        + "b}";
+
+        level.getServer()
+                .getCommands()
+                .performPrefixedCommand(
+                        level.getServer()
+                                .createCommandSourceStack()
+                                .withSuppressedOutput(),
+                        comando
+                );
+    }
+    private static void aplicarVelocidad(
+            Mob creeper,
+            int amplificador
+    ) {
+
+        MobEffectInstance efectoActual =
+                creeper.getEffect(
+                        MobEffects.SPEED
+                );
+
+        if (efectoActual != null
+                && efectoActual.getAmplifier()
+                == amplificador
+                && efectoActual.getDuration() > 80) {
+
+            return;
+        }
 
         creeper.addEffect(
                 new MobEffectInstance(
                         MobEffects.SPEED,
                         DURACION_EFECTOS,
-                        AMPLIFICADOR_VELOCIDAD,
+                        amplificador,
                         false,
                         false,
                         false
                 )
         );
-    }
-
-    private static void aplicarEtapaDia14(
-            Mob creeper
-    ) {
-
     }
 
     private static void aplicarEtapaDia21(
