@@ -1,0 +1,12 @@
+{
+  "type": "neoforge:add_spawns",
+  "structures": "repurposed_structures:ancient_city_end",
+  "spawners": [
+    {
+      "type": "minecraft:vex",
+      "weight": 5,
+      "minCount": 1,
+      "maxCount": 2
+    }
+  ]
+}
