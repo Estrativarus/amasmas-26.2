@@ -19,7 +19,7 @@ public final class EndermanProgressionEvents {
             14;
 
     private static final double DANO_DIA_14 =
-            60.0D;
+            30.0D;
 
     @SubscribeEvent
     public static void onEndermanJoin(
