@@ -31,16 +31,16 @@ public final class SkeletonClassEvents {
      * que la identificación se realizará mediante el nombre.
      */
     private static final String NOMBRE_CLASE_1 =
-            "Esqueleto acorazado";
+            "Acorazado";
 
     private static final String NOMBRE_CLASE_2 =
-            "Arquero de empuje";
+            "Badaboing";
 
     private static final String NOMBRE_CLASE_3 =
-            "Esqueleto incendiario";
+            "Pyro";
 
     private static final String NOMBRE_CLASE_4 =
-            "Ballestero dorado";
+            "Peón dorado";
 
     private static final String NOMBRE_CLASE_5 =
             "Mulayin";
