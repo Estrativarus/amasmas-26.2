@@ -7,7 +7,9 @@
     "TorchflowerLightMixin",
     "PiglinBarterMixin",
     "CreeperLingeringCloudMixin",
-    "EndSpikeBedrockMixin"
+    "EndSpikeBedrockMixin",
+    "WitherBossAccessor",
+    "MiniWitherBlockDestructionMixin"
   ],
   "injectors": {
     "defaultRequire": 1
