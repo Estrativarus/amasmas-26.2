@@ -19,6 +19,9 @@ import net.neoforged.neoforge.event.entity.EntityJoinLevelEvent;
 import net.neoforged.neoforge.event.entity.living.LivingDamageEvent;
 import net.neoforged.neoforge.event.tick.EntityTickEvent;
 import com.estrativarus.amasmas.specialbook.SpecialEnchantedBooks;
+import net.minecraft.world.entity.Mob;
+import net.neoforged.neoforge.event.tick.EntityTickEvent;
+
 
 @EventBusSubscriber(modid = Amasmas.MOD_ID)
 public final class StalkerEvents {
@@ -37,6 +40,54 @@ public final class StalkerEvents {
      */
     public static final String TAG_FORZAR_STALKER =
             "amasmas_forzar_stalker";
+
+    public static void configurarStalkerExterno(
+            ServerLevel level,
+            Mob creaking
+    ) {
+
+        if (creaking.getType()
+                != EntityTypes.CREAKING) {
+
+            return;
+        }
+
+        if (esStalker(creaking)) {
+            return;
+        }
+
+        creaking
+                .getPersistentData()
+                .putBoolean(
+                        TAG_STALKER,
+                        true
+                );
+
+        configurarStalker(
+                creaking
+        );
+
+        int diaActual =
+                SistemaDiasSavedData
+                        .get(level.getServer())
+                        .getDiaActual();
+
+        aplicarVidaSegunDia(
+                creaking,
+                diaActual
+        );
+    }
+
+    public static boolean esStalker(
+            Mob mob
+    ) {
+
+        return mob
+                .getPersistentData()
+                .contains(
+                        TAG_STALKER
+                );
+    }
 
     /*
      * Evita generar más de una vez el libro especial.
@@ -96,6 +147,88 @@ public final class StalkerEvents {
      * Aquí realizamos la tirada de uno entre cinco para
      * los Creakings nuevos.
      */
+    private static final double VIDA_ANTES_DIA_14 =
+            40.0D;
+
+    private static final double VIDA_DESDE_DIA_14 =
+            60.0D;
+
+    private static void aplicarVidaSegunDia(
+            LivingEntity stalker,
+            int diaActual
+    ) {
+
+        double vidaObjetivo;
+
+        if (diaActual >= 14) {
+
+            vidaObjetivo =
+                    60.0D;
+
+        } else {
+
+            vidaObjetivo =
+                    20.0D;
+        }
+
+        AttributeInstance atributoVida =
+                stalker.getAttribute(
+                        Attributes.MAX_HEALTH
+                );
+
+        if (atributoVida == null) {
+            return;
+        }
+
+        if (atributoVida.getBaseValue()
+                == vidaObjetivo) {
+
+            return;
+        }
+
+        double vidaMaximaAnterior =
+                atributoVida.getBaseValue();
+
+        float vidaAnterior =
+                stalker.getHealth();
+
+        float proporcionVida;
+
+        if (vidaMaximaAnterior <= 0.0D) {
+
+            proporcionVida =
+                    1.0F;
+
+        } else {
+
+            proporcionVida =
+                    (float) (
+                            vidaAnterior
+                                    / vidaMaximaAnterior
+                    );
+        }
+
+        proporcionVida =
+                Math.max(
+                        0.0F,
+                        Math.min(
+                                1.0F,
+                                proporcionVida
+                        )
+                );
+
+        atributoVida.setBaseValue(
+                vidaObjetivo
+        );
+
+        stalker.setHealth(
+                (float) vidaObjetivo
+                        * proporcionVida
+        );
+    }
+
+
+
     @SubscribeEvent
     public static void onCreakingJoinLevel(
             EntityJoinLevelEvent event
@@ -202,30 +335,24 @@ public final class StalkerEvents {
             EntityTickEvent.Post event
     ) {
 
-        if (!(event.getEntity() instanceof LivingEntity creaking)) {
+        if (!(event.getEntity()
+                instanceof LivingEntity creaking)) {
+
             return;
         }
 
-        if (creaking.getType() != EntityTypes.CREAKING) {
+        if (creaking.getType()
+                != EntityTypes.CREAKING) {
+
             return;
         }
 
-        if (!(creaking.level() instanceof ServerLevel level)) {
+        if (!(creaking.level()
+                instanceof ServerLevel level)) {
+
             return;
         }
 
-        /*
-         * Herramienta administrativa:
-         *
-         * si el Creaking contiene esta etiqueta, se convierte
-         * inmediatamente en Stalker.
-         */
-        /*
-         * Herramienta administrativa:
-         *
-         * Si el Creaking se llama exactamente "Forzar Stalker",
-         * lo convertimos inmediatamente.
-         */
         if (creaking.hasCustomName()
                 && creaking.getCustomName() != null
                 && creaking
@@ -233,34 +360,37 @@ public final class StalkerEvents {
                 .getString()
                 .equals("Forzar Stalker")) {
 
-            convertirEnStalker(creaking);
+            convertirEnStalker(
+                    creaking
+            );
 
             return;
         }
 
-        /*
-         * Los Creakings normales no necesitan ejecutar
-         * ninguna lógica adicional.
-         */
         if (!esStalker(creaking)) {
             return;
         }
 
-        /*
-         * Mantenemos el daño base una vez por segundo.
-         *
-         * Esto evita que otra mecánica o una recarga del mundo
-         * deje al Stalker con el daño vanilla.
-         */
-        if (creaking.tickCount % INTERVALO_ATRIBUTO == 0) {
-            establecerDanoStalker(creaking);
+        int diaActual =
+                SistemaDiasSavedData
+                        .get(level.getServer())
+                        .getDiaActual();
+
+        aplicarVidaSegunDia(
+                creaking,
+                diaActual
+        );
+
+        if (creaking.tickCount
+                % INTERVALO_ATRIBUTO == 0) {
+
+            establecerDanoStalker(
+                    creaking
+            );
         }
 
-        /*
-         * Mostramos las partículas rojas cinco veces
-         * por segundo.
-         */
-        if (creaking.tickCount % INTERVALO_PARTICULAS == 0) {
+        if (creaking.tickCount
+                % INTERVALO_PARTICULAS == 0) {
 
             mostrarParticulasRojas(
                     level,
