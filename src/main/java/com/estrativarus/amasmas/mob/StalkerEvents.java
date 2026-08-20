@@ -52,25 +52,25 @@ public final class StalkerEvents {
             return;
         }
 
-        if (esStalker(creaking)) {
-            return;
-        }
-
-        creaking
-                .getPersistentData()
-                .putBoolean(
-                        TAG_STALKER,
-                        true
-                );
-
-        configurarStalker(
-                creaking
-        );
-
         int diaActual =
                 SistemaDiasSavedData
                         .get(level.getServer())
                         .getDiaActual();
+
+        if (!esStalker(creaking)) {
+
+            creaking
+                    .getPersistentData()
+                    .putBoolean(
+                            TAG_STALKER,
+                            true
+                    );
+        }
+
+        configurarStalker(
+                creaking,
+                diaActual
+        );
 
         aplicarVidaSegunDia(
                 creaking,
@@ -110,9 +110,11 @@ public final class StalkerEvents {
      * 20 puntos de daño equivalen a diez corazones
      * antes de aplicar armadura, efectos y reducciones.
      */
-    private static final double DANO_STALKER =
+    private static final double DANO_DIAS_7_A_13 =
             20.0D;
 
+    private static final double DANO_DESDE_DIA_14 =
+            60.0D;
     /*
      * Nivel del libro especial que soltará.
      */
@@ -255,12 +257,11 @@ public final class StalkerEvents {
             return;
         }
 
-        /*
-         * Si ya es Stalker, simplemente restauramos su daño.
-         *
-         * Esto permite que siga funcionando después de cerrar
-         * y volver a abrir el mundo.
-         */
+        int diaActual =
+                SistemaDiasSavedData
+                        .get(level.getServer())
+                        .getDiaActual();
+
         if (esStalker(creaking)) {
 
             level.getServer().execute(() -> {
@@ -268,7 +269,35 @@ public final class StalkerEvents {
                 if (creaking.isAlive()
                         && !creaking.isRemoved()) {
 
-                    configurarStalker(creaking);
+                    configurarStalker(
+                            creaking,
+                            diaActual
+                    );
+                }
+            });
+
+            return;
+        }
+
+        /*
+         * Si ya es Stalker, simplemente restauramos su daño.
+         *
+         * Esto permite que siga funcionando después de cerrar
+         * y volver a abrir el mundo.
+         */
+
+
+        if (esStalker(creaking)) {
+
+            level.getServer().execute(() -> {
+
+                if (creaking.isAlive()
+                        && !creaking.isRemoved()) {
+
+                    configurarStalker(
+                            creaking,
+                            diaActual
+                    );
                 }
             });
 
@@ -283,10 +312,15 @@ public final class StalkerEvents {
             return;
         }
 
-        int diaActual =
-                SistemaDiasSavedData
-                        .get(level.getServer())
-                        .getDiaActual();
+        aplicarVidaSegunDia(
+                creaking,
+                diaActual
+        );
+
+        aplicarDanoSegunDia(
+                creaking,
+                diaActual
+        );
 
         /*
          * Antes del día 7 no aparecen Stalkers.
@@ -382,14 +416,6 @@ public final class StalkerEvents {
         );
 
         if (creaking.tickCount
-                % INTERVALO_ATRIBUTO == 0) {
-
-            establecerDanoStalker(
-                    creaking
-            );
-        }
-
-        if (creaking.tickCount
                 % INTERVALO_PARTICULAS == 0) {
 
             mostrarParticulasRojas(
@@ -406,32 +432,55 @@ public final class StalkerEvents {
             LivingEntity creaking
     ) {
 
-        /*
-         * Evitamos repetir la conversión.
-         */
-        if (esStalker(creaking)) {
-            configurarStalker(creaking);
+        if (!(creaking.level()
+                instanceof ServerLevel level)) {
+
             return;
         }
 
-        creaking.addTag(TAG_STALKER);
+        int diaActual =
+                SistemaDiasSavedData
+                        .get(level.getServer())
+                        .getDiaActual();
 
-        configurarStalker(creaking);
+        if (esStalker(creaking)) {
+
+            configurarStalker(
+                    creaking,
+                    diaActual
+            );
+
+            return;
+        }
+
+        creaking
+                .getPersistentData()
+                .putBoolean(
+                        TAG_STALKER,
+                        true
+                );
+
+        configurarStalker(
+                creaking,
+                diaActual
+        );
     }
+
 
     /*
      * Aplica las propiedades que deben mantenerse
      * durante toda la vida del Stalker.
      */
     private static void configurarStalker(
-            LivingEntity stalker
+            LivingEntity stalker,
+            int diaActual
     ) {
 
-        establecerDanoStalker(stalker);
+        aplicarDanoSegunDia(
+                stalker,
+                diaActual
+        );
 
-        /*
-         * Nombre visible para identificarlo.
-         */
         stalker.setCustomName(
                 Component.literal("Stalker")
                         .withStyle(
@@ -442,11 +491,7 @@ public final class StalkerEvents {
 
         stalker.setCustomNameVisible(false);
 
-        /*
-         * El Stalker es una criatura especial y rara.
-         * Evitamos que desaparezca por distancia.
-         */
-        if (stalker instanceof net.minecraft.world.entity.Mob mob) {
+        if (stalker instanceof Mob mob) {
             mob.setPersistenceRequired();
         }
     }
@@ -454,27 +499,44 @@ public final class StalkerEvents {
     /*
      * Establece veinte puntos de daño base.
      */
-    private static void establecerDanoStalker(
-            LivingEntity stalker
+    private static void aplicarDanoSegunDia(
+            LivingEntity stalker,
+            int diaActual
     ) {
+
+        double danoObjetivo;
+
+        if (diaActual >= 14) {
+
+            danoObjetivo =
+                    DANO_DESDE_DIA_14;
+
+        } else {
+
+            danoObjetivo =
+                    DANO_DIAS_7_A_13;
+        }
 
         AttributeInstance atributoDano =
                 stalker.getAttribute(
                         Attributes.ATTACK_DAMAGE
                 );
 
-        /*
-         * Algunos tipos de entidades podrían no tener
-         * este atributo. En ese caso evitamos un NullPointer.
-         */
         if (atributoDano == null) {
             return;
         }
 
+        if (atributoDano.getBaseValue()
+                == danoObjetivo) {
+
+            return;
+        }
+
         atributoDano.setBaseValue(
-                DANO_STALKER
+                danoObjetivo
         );
     }
+
 
     /*
      * Genera partículas de indicador de daño.

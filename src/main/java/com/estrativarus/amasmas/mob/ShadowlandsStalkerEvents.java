@@ -29,7 +29,7 @@ public final class ShadowlandsStalkerEvents {
      * 1 entre 8 Endermen se convierte.
      */
     private static final int PROBABILIDAD_STALKER =
-            1;
+            8;
 
     private static final String TAG_TIRADA_REALIZADA =
             "amasmas_tirada_stalker_shadowlands";
