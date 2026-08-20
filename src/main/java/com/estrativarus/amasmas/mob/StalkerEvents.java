@@ -20,11 +20,61 @@ import net.neoforged.neoforge.event.entity.living.LivingDamageEvent;
 import net.neoforged.neoforge.event.tick.EntityTickEvent;
 import com.estrativarus.amasmas.specialbook.SpecialEnchantedBooks;
 import net.minecraft.world.entity.Mob;
+import net.minecraft.tags.DamageTypeTags;
+import net.neoforged.neoforge.event.entity.EntityInvulnerabilityCheckEvent;
 import net.neoforged.neoforge.event.tick.EntityTickEvent;
 
 
 @EventBusSubscriber(modid = Amasmas.MOD_ID)
 public final class StalkerEvents {
+
+    @SubscribeEvent
+    public static void onStalkerInvulnerabilityCheck(
+            EntityInvulnerabilityCheckEvent event
+    ) {
+
+        if (!(event.getEntity()
+                instanceof LivingEntity stalker)) {
+
+            return;
+        }
+
+        if (stalker.getType()
+                != EntityTypes.CREAKING) {
+
+            return;
+        }
+
+        if (!esStalker(stalker)) {
+            return;
+        }
+
+        if (!(stalker.level()
+                instanceof ServerLevel level)) {
+
+            return;
+        }
+
+        int diaActual =
+                SistemaDiasSavedData
+                        .get(level.getServer())
+                        .getDiaActual();
+
+        if (diaActual < 14) {
+            return;
+        }
+
+        if (!event.getSource().is(
+                DamageTypeTags.IS_PROJECTILE
+        )) {
+
+            return;
+        }
+
+        event.setInvulnerable(
+                true
+        );
+    }
 
     /*
      * Etiqueta persistente que identifica a los Stalkers.
@@ -103,7 +153,7 @@ public final class StalkerEvents {
     private static final int PROBABILIDAD_STALKER =
             5;
     private static final float PROBABILIDAD_LIBRO =
-            1F;
+            0.33F;
     /*
      * Daño base del Stalker.
      *
