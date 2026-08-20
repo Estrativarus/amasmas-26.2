@@ -20,11 +20,14 @@ public final class CaveSpiderProgressionEvents {
     private static final String TAG_TRANSFORMACION_PENDIENTE =
             "amasmas_transformacion_arana_pendiente";
 
-    private static final int DURACION_RESISTENCIA =
+    private static final int DURACION_EFECTOS =
             20 * 15;
 
     private static final int AMPLIFICADOR_RESISTENCIA =
             2;
+
+    private static final int AMPLIFICADOR_FUERZA =
+            4;
 
     @SubscribeEvent
     public static void onEntityJoin(
@@ -78,6 +81,24 @@ public final class CaveSpiderProgressionEvents {
                 arana,
                 diaActual
         );
+    }
+
+    private static void aplicarEtapaDia21(
+            Mob mob
+    ) {
+
+    }
+
+    private static void aplicarEtapaDia42(
+            Mob mob
+    ) {
+
+    }
+
+    private static void aplicarEtapaDia63(
+            Mob mob
+    ) {
+
     }
 
     @SubscribeEvent
@@ -137,6 +158,8 @@ public final class CaveSpiderProgressionEvents {
                 diaActual
         );
     }
+
+
 
     private static void programarTransformacion(
             ServerLevel level,
@@ -248,8 +271,42 @@ public final class CaveSpiderProgressionEvents {
         });
     }
 
-    private static void aplicarProgresion(
-            Mob arana,
+    private static void renovarEfectoSiNecesario(
+            Mob mob,
+            net.minecraft.core.Holder<
+                    net.minecraft.world.effect.MobEffect
+                    > efecto,
+            int amplificador
+    ) {
+
+        MobEffectInstance efectoActual =
+                mob.getEffect(
+                        efecto
+                );
+
+        if (efectoActual != null
+                && efectoActual.getAmplifier()
+                == amplificador
+                && efectoActual.getDuration() > 100) {
+
+            return;
+        }
+
+        mob.addEffect(
+                new MobEffectInstance(
+                        efecto,
+                        DURACION_EFECTOS,
+                        amplificador,
+                        false,
+                        false,
+                        false
+                )
+        );
+    }
+
+
+    public static void aplicarProgresion(
+            Mob mob,
             int diaActual
     ) {
 
@@ -257,17 +314,40 @@ public final class CaveSpiderProgressionEvents {
             return;
         }
 
-        arana.addEffect(
-                new MobEffectInstance(
-                        MobEffects.RESISTANCE,
-                        DURACION_RESISTENCIA,
-                        AMPLIFICADOR_RESISTENCIA,
-                        false,
-                        false,
-                        false
-                )
+        renovarEfectoSiNecesario(
+                mob,
+                MobEffects.RESISTANCE,
+                AMPLIFICADOR_RESISTENCIA
         );
+
+        renovarEfectoSiNecesario(
+                mob,
+                MobEffects.STRENGTH,
+                AMPLIFICADOR_FUERZA
+        );
+
+        if (diaActual >= 21) {
+
+            aplicarEtapaDia21(
+                    mob
+            );
+        }
+
+        if (diaActual >= 42) {
+
+            aplicarEtapaDia42(
+                    mob
+            );
+        }
+
+        if (diaActual >= 63) {
+
+            aplicarEtapaDia63(
+                    mob
+            );
+        }
     }
+
 
     private CaveSpiderProgressionEvents() {
     }
