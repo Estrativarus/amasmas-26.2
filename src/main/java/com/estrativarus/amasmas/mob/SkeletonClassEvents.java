@@ -20,6 +20,9 @@ import net.minecraft.world.item.enchantment.Enchantments;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.event.entity.EntityJoinLevelEvent;
+import net.minecraft.world.effect.MobEffectInstance;
+import net.minecraft.world.effect.MobEffects;
+import net.neoforged.neoforge.event.tick.EntityTickEvent;
 
 @EventBusSubscriber(modid = Amasmas.MOD_ID)
 public final class SkeletonClassEvents {
@@ -45,6 +48,450 @@ public final class SkeletonClassEvents {
     private static final String NOMBRE_CLASE_5 =
             "Mulayin";
 
+    private static final String TAG_CLASE_1 =
+            "amasmas_esqueleto_clase_1";
+
+    private static final String TAG_CLASE_2 =
+            "amasmas_esqueleto_clase_2";
+
+    private static final String TAG_CLASE_3 =
+            "amasmas_esqueleto_clase_3";
+
+    private static final String TAG_CLASE_4 =
+            "amasmas_esqueleto_clase_4";
+
+    private static final String TAG_CLASE_5 =
+            "amasmas_esqueleto_clase_5";
+
+    private static final String TAG_MEJORA_DIA_14 =
+            "amasmas_esqueleto_mejora_dia_14";
+
+    private static final int DIA_MEJORA =
+            14;
+
+    private static final int DURACION_VELOCIDAD =
+            20 * 15;
+
+    private static final int AMPLIFICADOR_VELOCIDAD_2 =
+            1;
+
+    @SubscribeEvent
+    public static void onClassedSkeletonTick(
+            EntityTickEvent.Post event
+    ) {
+
+        if (!(event.getEntity()
+                instanceof Mob skeleton)) {
+
+            return;
+        }
+
+        if (!esEsqueletoDeClase(skeleton)) {
+            return;
+        }
+
+        if (!(skeleton.level()
+                instanceof ServerLevel level)) {
+
+            return;
+        }
+
+        if ((skeleton.tickCount
+                + skeleton.getId()) % 100 != 0) {
+
+            return;
+        }
+
+        int diaActual =
+                SistemaDiasSavedData
+                        .get(level.getServer())
+                        .getDiaActual();
+
+        if (diaActual < DIA_MEJORA) {
+            return;
+        }
+
+        aplicarMejoraDia14(
+                level,
+                skeleton
+        );
+    }
+
+    private static boolean esEsqueletoDeClase(
+            Mob skeleton
+    ) {
+
+        return skeleton
+                .getPersistentData()
+                .contains(TAG_CLASE_1)
+
+                || skeleton
+                .getPersistentData()
+                .contains(TAG_CLASE_2)
+
+                || skeleton
+                .getPersistentData()
+                .contains(TAG_CLASE_3)
+
+                || skeleton
+                .getPersistentData()
+                .contains(TAG_CLASE_4)
+
+                || skeleton
+                .getPersistentData()
+                .contains(TAG_CLASE_5);
+    }
+    private static void aplicarMejoraDia14(
+            ServerLevel level,
+            Mob skeleton
+    ) {
+
+        if (skeleton
+                .getPersistentData()
+                .contains(TAG_CLASE_4)) {
+
+            renovarVelocidadClaseCuatro(
+                    skeleton
+            );
+        }
+
+        if (skeleton
+                .getPersistentData()
+                .contains(TAG_MEJORA_DIA_14)) {
+
+            return;
+        }
+
+        establecerVida(
+                skeleton,
+                40.0D
+        );
+
+        if (skeleton
+                .getPersistentData()
+                .contains(TAG_CLASE_1)) {
+
+            mejorarClaseUno(
+                    level,
+                    skeleton
+            );
+
+        } else if (skeleton
+                .getPersistentData()
+                .contains(TAG_CLASE_2)) {
+
+            mejorarClaseDos(
+                    level,
+                    skeleton
+            );
+
+        } else if (skeleton
+                .getPersistentData()
+                .contains(TAG_CLASE_3)) {
+
+            mejorarClaseTres(
+                    level,
+                    skeleton
+            );
+
+        } else if (skeleton
+                .getPersistentData()
+                .contains(TAG_CLASE_4)) {
+
+            mejorarClaseCuatro(
+                    level,
+                    skeleton
+            );
+
+        } else if (skeleton
+                .getPersistentData()
+                .contains(TAG_CLASE_5)) {
+
+            mejorarClaseCinco(
+                    level,
+                    skeleton
+            );
+
+        } else {
+
+            return;
+        }
+
+        bloquearDropsEquipamiento(
+                skeleton
+        );
+
+        skeleton
+                .getPersistentData()
+                .putBoolean(
+                        TAG_MEJORA_DIA_14,
+                        true
+                );
+    }
+    private static void mejorarClaseUno(
+            ServerLevel level,
+            Mob skeleton
+    ) {
+
+        ItemStack casco =
+                new ItemStack(
+                        Items.DIAMOND_HELMET
+                );
+
+        ItemStack pechera =
+                new ItemStack(
+                        Items.DIAMOND_CHESTPLATE
+                );
+
+        ItemStack pantalones =
+                new ItemStack(
+                        Items.DIAMOND_LEGGINGS
+                );
+
+        ItemStack botas =
+                new ItemStack(
+                        Items.DIAMOND_BOOTS
+                );
+
+        encantar(
+                level,
+                casco,
+                Enchantments.PROTECTION,
+                4
+        );
+
+        encantar(
+                level,
+                pechera,
+                Enchantments.PROTECTION,
+                4
+        );
+
+        encantar(
+                level,
+                pantalones,
+                Enchantments.PROTECTION,
+                4
+        );
+
+        encantar(
+                level,
+                botas,
+                Enchantments.PROTECTION,
+                4
+        );
+
+        equiparArmadura(
+                skeleton,
+                casco,
+                pechera,
+                pantalones,
+                botas
+        );
+    }
+    private static void mejorarClaseDos(
+            ServerLevel level,
+            Mob skeleton
+    ) {
+
+        equiparArmadura(
+                skeleton,
+                new ItemStack(
+                        Items.CHAINMAIL_HELMET
+                ),
+                new ItemStack(
+                        Items.CHAINMAIL_CHESTPLATE
+                ),
+                new ItemStack(
+                        Items.CHAINMAIL_LEGGINGS
+                ),
+                new ItemStack(
+                        Items.CHAINMAIL_BOOTS
+                )
+        );
+
+        ItemStack arco =
+                new ItemStack(
+                        Items.BOW
+                );
+
+        encantar(
+                level,
+                arco,
+                Enchantments.PUNCH,
+                30
+        );
+
+        encantar(
+                level,
+                arco,
+                Enchantments.POWER,
+                25
+        );
+
+        skeleton.setItemSlot(
+                EquipmentSlot.MAINHAND,
+                arco
+        );
+    }
+    private static void mejorarClaseTres(
+            ServerLevel level,
+            Mob skeleton
+    ) {
+
+        equiparArmadura(
+                skeleton,
+                new ItemStack(
+                        Items.IRON_HELMET
+                ),
+                new ItemStack(
+                        Items.IRON_CHESTPLATE
+                ),
+                new ItemStack(
+                        Items.IRON_LEGGINGS
+                ),
+                new ItemStack(
+                        Items.IRON_BOOTS
+                )
+        );
+
+        ItemStack hacha =
+                new ItemStack(
+                        Items.DIAMOND_AXE
+                );
+
+        encantar(
+                level,
+                hacha,
+                Enchantments.FIRE_ASPECT,
+                10
+        );
+
+        skeleton.setItemSlot(
+                EquipmentSlot.MAINHAND,
+                hacha
+        );
+    }
+    private static void mejorarClaseCuatro(
+            ServerLevel level,
+            Mob skeleton
+    ) {
+
+        equiparArmadura(
+                skeleton,
+                new ItemStack(
+                        Items.GOLDEN_HELMET
+                ),
+                new ItemStack(
+                        Items.GOLDEN_CHESTPLATE
+                ),
+                new ItemStack(
+                        Items.GOLDEN_LEGGINGS
+                ),
+                new ItemStack(
+                        Items.GOLDEN_BOOTS
+                )
+        );
+
+        ItemStack ballesta =
+                new ItemStack(
+                        Items.CROSSBOW
+                );
+
+        encantar(
+                level,
+                ballesta,
+                Enchantments.SHARPNESS,
+                25
+        );
+
+        skeleton.setItemSlot(
+                EquipmentSlot.MAINHAND,
+                ballesta
+        );
+
+        renovarVelocidadClaseCuatro(
+                skeleton
+        );
+    }
+    private static void renovarVelocidadClaseCuatro(
+            Mob skeleton
+    ) {
+
+        MobEffectInstance efectoActual =
+                skeleton.getEffect(
+                        MobEffects.SPEED
+                );
+
+        if (efectoActual != null
+                && efectoActual.getAmplifier()
+                == AMPLIFICADOR_VELOCIDAD_2
+                && efectoActual.getDuration() > 80) {
+
+            return;
+        }
+
+        skeleton.addEffect(
+                new MobEffectInstance(
+                        MobEffects.SPEED,
+                        DURACION_VELOCIDAD,
+                        AMPLIFICADOR_VELOCIDAD_2,
+                        false,
+                        false,
+                        false
+                )
+        );
+    }
+    private static void mejorarClaseCinco(
+            ServerLevel level,
+            Mob skeleton
+    ) {
+
+        equiparArmadura(
+                skeleton,
+                new ItemStack(
+                        Items.LEATHER_HELMET
+                ),
+                new ItemStack(
+                        Items.LEATHER_CHESTPLATE
+                ),
+                new ItemStack(
+                        Items.LEATHER_LEGGINGS
+                ),
+                new ItemStack(
+                        Items.LEATHER_BOOTS
+                )
+        );
+
+        ItemStack arco =
+                new ItemStack(
+                        Items.BOW
+                );
+
+        encantar(
+                level,
+                arco,
+                Enchantments.POWER,
+                50
+        );
+
+        skeleton.setItemSlot(
+                EquipmentSlot.MAINHAND,
+                arco
+        );
+    }
+
+    private static void marcarClase(
+            Mob mob,
+            String tagClase
+    ) {
+
+        mob.getPersistentData()
+                .putBoolean(
+                        tagClase,
+                        true
+                );
+    }
     /*
      * Se ejecuta cuando una entidad entra en el mundo.
      */
@@ -128,7 +575,8 @@ public final class SkeletonClassEvents {
             aplicarClase(
                     level,
                     mob,
-                    clase
+                    clase,
+                    diaActual
             );
         });
     }
@@ -136,7 +584,8 @@ public final class SkeletonClassEvents {
     private static void aplicarClase(
             ServerLevel level,
             Mob mobOriginal,
-            int clase
+            int clase,
+            int diaActual
     ) {
 
         switch (clase) {
@@ -225,6 +674,10 @@ public final class SkeletonClassEvents {
             ServerLevel level,
             Mob mob
     ) {
+        marcarClase(
+                mob,
+                TAG_CLASE_1
+        );
 
         establecerNombre(
                 mob,
@@ -259,6 +712,10 @@ public final class SkeletonClassEvents {
             ServerLevel level,
             Mob mob
     ) {
+        marcarClase(
+                mob,
+                TAG_CLASE_3
+        );
 
         establecerNombre(
                 mob,
@@ -310,6 +767,10 @@ public final class SkeletonClassEvents {
             ServerLevel level,
             Mob mob
     ) {
+        marcarClase(
+                mob,
+                TAG_CLASE_4
+        );
 
         establecerNombre(
                 mob,
@@ -453,6 +914,10 @@ public final class SkeletonClassEvents {
             ServerLevel level,
             Mob mob
     ) {
+        marcarClase(
+                mob,
+                TAG_CLASE_2
+        );
 
         establecerNombre(
                 mob,
@@ -499,6 +964,10 @@ public final class SkeletonClassEvents {
             ServerLevel level,
             Mob mob
     ) {
+        marcarClase(
+                mob,
+                TAG_CLASE_5
+        );
 
         establecerNombre(
                 mob,
