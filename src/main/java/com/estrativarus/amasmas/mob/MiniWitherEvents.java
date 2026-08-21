@@ -568,6 +568,45 @@ public final class MiniWitherEvents {
                 );
     }
 
+    public static WitherBoss crearMiniWitherExterno(
+            ServerLevel level,
+            double x,
+            double y,
+            double z
+    ) {
+
+        WitherBoss miniWither =
+                EntityTypes.WITHER.create(
+                        level,
+                        EntitySpawnReason.TRIGGERED
+                );
+
+        if (miniWither == null) {
+            return null;
+        }
+
+        miniWither.setPos(
+                x,
+                y,
+                z
+        );
+
+        miniWither.setYRot(
+                level.getRandom().nextFloat()
+                        * 360.0F
+        );
+
+        miniWither.setXRot(
+                0.0F
+        );
+
+        configurarMiniWither(
+                miniWither
+        );
+
+        return miniWither;
+    }
+
     private MiniWitherEvents() {
     }
 }

@@ -23,6 +23,8 @@ import net.minecraft.world.level.levelgen.feature.EndSpikeFeature;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.entity.projectile.Projectile;
 import net.minecraft.world.phys.Vec3;
+import com.estrativarus.amasmas.mob.MiniWitherEvents;
+import net.minecraft.world.entity.boss.wither.WitherBoss;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -49,9 +51,15 @@ public final class WingedDemonAttackEvents {
     private static final int MICRO_DEMONIOS_POR_JUGADOR =
             2;
 
-    private static final int ATAQUES_IMPLEMENTADOS =
-            4;
-
+    private static final int[] ATAQUES_SELECCIONABLES = {
+            1,
+            2,
+            3,
+            4,
+            5,
+            7,
+            8
+    };
     private static final int CANTIDAD_ESQUELETOS_ATAQUE_3 =
             2;
 
@@ -108,7 +116,23 @@ public final class WingedDemonAttackEvents {
     private static final double DISTANCIA_MAXIMA_OBJETIVO =
             192.0D;
 
+    public static final String TAG_ENDERMAN_ATAQUE_7 =
+            "amasmas_enderman_ataque_demonio_alado";
 
+    private static final int CANTIDAD_ENDERMANS_ATAQUE_7 =
+            2;
+
+    private static final double DISTANCIA_MAXIMA_OBJETIVO_ATAQUE_7 =
+            192.0D;
+
+    private static final int CANTIDAD_MINI_WITHERS_ATAQUE_8 =
+            3;
+
+    private static final double RADIO_MINI_WITHERS_ATAQUE_8 =
+            4.0D;
+
+    private static final double ALTURA_MINI_WITHERS_ATAQUE_8 =
+            8.0D;
 
     @SubscribeEvent
     public static void onWingedDemonTick(
@@ -305,8 +329,28 @@ public final class WingedDemonAttackEvents {
             EnderDragon dragon
     ) {
 
+        int indiceAtaque =
+                dragon
+                        .getRandom()
+                        .nextInt(
+                                ATAQUES_SELECCIONABLES.length
+                        );
+
+        int[] ataquesDisponibles = {
+                1,
+                2,
+                3,
+                4,
+                5,
+                8
+        };
+
         int ataqueSeleccionado =
-                level.getRandom().nextInt(5) + 1;
+                ataquesDisponibles[
+                        level.getRandom().nextInt(
+                                ataquesDisponibles.length
+                        )
+                        ];
 
         switch (ataqueSeleccionado) {
 
@@ -339,6 +383,12 @@ public final class WingedDemonAttackEvents {
                             level,
                             dragon
                     );
+
+            case 7 ->
+                    ataqueInvocarEndermans(level,dragon);
+
+            case 8 ->
+                ataqueInvocarMiniWithers(level,dragon);
 
             default -> {
             }
@@ -1585,6 +1635,344 @@ public final class WingedDemonAttackEvents {
         );
     }
 
+    private static void ataqueInvocarEndermans(
+            ServerLevel level,
+            EnderDragon dragon
+    ) {
+
+        ServerPlayer primerObjetivo =
+                elegirJugadorAleatorioAtaqueSiete(
+                        level,
+                        dragon
+                );
+
+        if (primerObjetivo == null) {
+            return;
+        }
+
+        BlockPos posicionSuelo =
+                buscarSueloBajoDragon(
+                        level,
+                        dragon
+                );
+
+        for (int numero = 0;
+             numero < CANTIDAD_ENDERMANS_ATAQUE_7;
+             numero++) {
+
+            ServerPlayer objetivo =
+                    elegirJugadorAleatorioAtaqueSiete(
+                            level,
+                            dragon
+                    );
+
+            if (objetivo == null) {
+
+                objetivo =
+                        primerObjetivo;
+            }
+
+            generarEndermanEnfadado(
+                    level,
+                    posicionSuelo,
+                    objetivo,
+                    numero
+            );
+        }
+
+        level.sendParticles(
+                ParticleTypes.PORTAL,
+                posicionSuelo.getX() + 0.5D,
+                posicionSuelo.getY() + 1.0D,
+                posicionSuelo.getZ() + 0.5D,
+                100,
+                1.0D,
+                1.5D,
+                1.0D,
+                0.25D
+        );
+
+        level.playSound(
+                null,
+                posicionSuelo.getX() + 0.5D,
+                posicionSuelo.getY() + 1.0D,
+                posicionSuelo.getZ() + 0.5D,
+                SoundEvents.ENDERMAN_SCREAM,
+                SoundSource.HOSTILE,
+                3.0F,
+                0.7F
+        );
+    }
+
+    private static BlockPos buscarSueloBajoDragon(
+            ServerLevel level,
+            EnderDragon dragon
+    ) {
+
+        int x =
+                (int) Math.floor(
+                        dragon.getX()
+                );
+
+        int z =
+                (int) Math.floor(
+                        dragon.getZ()
+                );
+
+        int alturaSuperficie =
+                level.getHeight(
+                        Heightmap.Types.MOTION_BLOCKING_NO_LEAVES,
+                        x,
+                        z
+                );
+
+        BlockPos superficie =
+                new BlockPos(
+                        x,
+                        alturaSuperficie,
+                        z
+                );
+
+        for (int y = alturaSuperficie;
+             y >= level.getMinY();
+             y--) {
+
+            BlockPos suelo =
+                    new BlockPos(
+                            x,
+                            y,
+                            z
+                    );
+
+            BlockPos espacioEncima =
+                    suelo.above();
+
+            boolean sueloSolido =
+                    !level
+                            .getBlockState(suelo)
+                            .isAir();
+
+            boolean espacioLibre =
+                    level
+                            .getBlockState(
+                                    espacioEncima
+                            )
+                            .isAir();
+
+            boolean segundoEspacioLibre =
+                    level
+                            .getBlockState(
+                                    espacioEncima.above()
+                            )
+                            .isAir();
+
+            if (sueloSolido
+                    && espacioLibre
+                    && segundoEspacioLibre) {
+
+                return espacioEncima;
+            }
+        }
+
+        return superficie;
+    }
+
+    private static ServerPlayer elegirJugadorAleatorioAtaqueSiete(
+            ServerLevel level,
+            EnderDragon dragon
+    ) {
+
+        double distanciaMaximaCuadrada =
+                DISTANCIA_MAXIMA_OBJETIVO_ATAQUE_7
+                        * DISTANCIA_MAXIMA_OBJETIVO_ATAQUE_7;
+
+        java.util.List<ServerPlayer> candidatos =
+                new java.util.ArrayList<>();
+
+        for (ServerPlayer player :
+                level.players()) {
+
+            if (!player.isAlive()
+                    || player.isSpectator()) {
+
+                continue;
+            }
+
+            if (dragon.distanceToSqr(player)
+                    > distanciaMaximaCuadrada) {
+
+                continue;
+            }
+
+            candidatos.add(
+                    player
+            );
+        }
+
+        if (candidatos.isEmpty()) {
+            return null;
+        }
+
+        int indice =
+                dragon
+                        .getRandom()
+                        .nextInt(
+                                candidatos.size()
+                        );
+
+        return candidatos.get(
+                indice
+        );
+    }
+
+    private static void generarEndermanEnfadado(
+            ServerLevel level,
+            BlockPos posicionSuelo,
+            ServerPlayer objetivo,
+            int numero
+    ) {
+
+        Mob enderman =
+                EntityTypes.ENDERMAN.create(
+                        level,
+                        EntitySpawnReason.TRIGGERED
+                );
+
+        if (enderman == null) {
+            return;
+        }
+
+        double desplazamientoX;
+
+        if (numero == 0) {
+
+            desplazamientoX =
+                    -0.75D;
+
+        } else {
+
+            desplazamientoX =
+                    0.75D;
+        }
+
+        enderman.setPos(
+                posicionSuelo.getX()
+                        + 0.5D
+                        + desplazamientoX,
+                posicionSuelo.getY(),
+                posicionSuelo.getZ()
+                        + 0.5D
+        );
+
+        enderman.setYRot(
+                objetivo.getYRot()
+        );
+
+        enderman.setXRot(
+                0.0F
+        );
+
+        enderman.setPersistenceRequired();
+
+        enderman
+                .getPersistentData()
+                .putBoolean(
+                        TAG_ENDERMAN_ATAQUE_7,
+                        true
+                );
+
+        enderman.setTarget(
+                objetivo
+        );
+
+        boolean anadido =
+                level.addFreshEntity(
+                        enderman
+                );
+
+        if (!anadido) {
+            return;
+        }
+
+        level.getServer().execute(() -> {
+
+            if (!enderman.isAlive()
+                    || enderman.isRemoved()) {
+
+                return;
+            }
+
+            enderman.setTarget(
+                    objetivo
+            );
+        });
+    }
+
+    private static void ataqueInvocarMiniWithers(
+            ServerLevel level,
+            EnderDragon dragon
+    ) {
+
+        BlockPos centroPortal =
+                buscarCentroPortal(
+                        level
+                );
+
+        double centroX =
+                centroPortal.getX() + 0.5D;
+
+        double centroY =
+                centroPortal.getY()
+                        + ALTURA_MINI_WITHERS_ATAQUE_8;
+
+        double centroZ =
+                centroPortal.getZ() + 0.5D;
+
+        for (int indice = 0;
+             indice < CANTIDAD_MINI_WITHERS_ATAQUE_8;
+             indice++) {
+
+            double angulo =
+                    indice
+                            * (
+                            Math.PI
+                                    * 2.0D
+                                    / CANTIDAD_MINI_WITHERS_ATAQUE_8
+                    );
+
+            double x =
+                    centroX
+                            + Math.cos(angulo)
+                            * RADIO_MINI_WITHERS_ATAQUE_8;
+
+            double z =
+                    centroZ
+                            + Math.sin(angulo)
+                            * RADIO_MINI_WITHERS_ATAQUE_8;
+
+            WitherBoss miniWither =
+                    MiniWitherEvents
+                            .crearMiniWitherExterno(
+                                    level,
+                                    x,
+                                    centroY,
+                                    z
+                            );
+
+            if (miniWither == null) {
+                continue;
+            }
+
+            boolean anadido =
+                    level.addFreshEntity(
+                            miniWither
+                    );
+
+            if (!anadido) {
+                miniWither.discard();
+            }
+        }
+    }
 
     private WingedDemonAttackEvents() {
     }
