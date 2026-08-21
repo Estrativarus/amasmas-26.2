@@ -21,11 +21,12 @@ import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.entity.boss.enderdragon.EndCrystal;
 import net.minecraft.world.level.levelgen.feature.EndSpikeFeature;
 import net.minecraft.world.phys.AABB;
+import net.minecraft.world.entity.projectile.Projectile;
+import net.minecraft.world.phys.Vec3;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
-
-
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -64,6 +65,27 @@ public final class WingedDemonAttackEvents {
     private static final Map<UUID, Long>
             PROXIMO_ATAQUE_POR_DRAGON =
             new HashMap<>();
+
+    private static final int JUGADORES_ATAQUE_5 =
+            3;
+
+    private static final int INTERVALO_DISPAROS_ATAQUE_5 =
+            15;
+
+    private static final double ALTURA_SOBRE_PORTAL_ATAQUE_5 =
+            12.0D;
+
+    private static final float VELOCIDAD_BOLA_ATAQUE_5 =
+            1.2F;
+
+    private static final int POTENCIA_BOLA_ATAQUE_5 =
+            4;
+
+    private static final Map<UUID, AtaqueBolasEstado>
+            ATAQUES_BOLAS_ACTIVOS =
+            new HashMap<>();
+
+
 
     @SubscribeEvent
     public static void onWingedDemonTick(
@@ -245,7 +267,7 @@ public final class WingedDemonAttackEvents {
     ) {
 
         int ataqueSeleccionado =
-                level.getRandom().nextInt(4) + 1;
+                level.getRandom().nextInt(5) + 1;
 
         switch (ataqueSeleccionado) {
 
@@ -269,6 +291,12 @@ public final class WingedDemonAttackEvents {
 
             case 4 ->
                     ataqueRegenerarCristal(
+                            level,
+                            dragon
+                    );
+
+            case 5 ->
+                    ataqueBolasDeFuego(
                             level,
                             dragon
                     );
@@ -722,6 +750,376 @@ public final class WingedDemonAttackEvents {
         level.addFreshEntity(
                 cristal
         );
+    }
+
+    private static final class AtaqueBolasEstado {
+
+        private final List<UUID> objetivos;
+
+        private int objetivoActual;
+
+        private int ticksHastaDisparo;
+
+        private AtaqueBolasEstado(
+                List<UUID> objetivos
+        ) {
+
+            this.objetivos =
+                    objetivos;
+
+            this.objetivoActual =
+                    0;
+
+            this.ticksHastaDisparo =
+                    10;
+        }
+    }
+
+    private static void ataqueBolasDeFuego(
+            ServerLevel level,
+            EnderDragon dragon
+    ) {
+
+        List<ServerPlayer> jugadoresValidos =
+                new ArrayList<>();
+
+        double distanciaMaximaCuadrada =
+                DISTANCIA_MAXIMA_JUGADORES
+                        * DISTANCIA_MAXIMA_JUGADORES;
+
+        for (ServerPlayer player :
+                level.players()) {
+
+            if (!player.isAlive()
+                    || player.isSpectator()) {
+
+                continue;
+            }
+
+            if (dragon.distanceToSqr(player)
+                    > distanciaMaximaCuadrada) {
+
+                continue;
+            }
+
+            jugadoresValidos.add(
+                    player
+            );
+        }
+
+        if (jugadoresValidos.isEmpty()) {
+            return;
+        }
+
+        Collections.shuffle(
+                jugadoresValidos,
+                new java.util.Random(
+                        level.getRandom().nextLong()
+                )
+        );
+
+        int cantidadObjetivos =
+                Math.min(
+                        JUGADORES_ATAQUE_5,
+                        jugadoresValidos.size()
+                );
+
+        List<UUID> objetivos =
+                new ArrayList<>();
+
+        for (int i = 0;
+             i < cantidadObjetivos;
+             i++) {
+
+            objetivos.add(
+                    jugadoresValidos
+                            .get(i)
+                            .getUUID()
+            );
+        }
+
+        BlockPos centroPortal =
+                buscarCentroPortal(
+                        level
+                );
+
+        dragon.setPos(
+                centroPortal.getX() + 0.5D,
+                centroPortal.getY()
+                        + ALTURA_SOBRE_PORTAL_ATAQUE_5,
+                centroPortal.getZ() + 0.5D
+        );
+
+        dragon.setDeltaMovement(
+                Vec3.ZERO
+        );
+
+        ATAQUES_BOLAS_ACTIVOS.put(
+                dragon.getUUID(),
+                new AtaqueBolasEstado(
+                        objetivos
+                )
+        );
+    }
+
+    @SubscribeEvent
+    public static void onAtaqueBolasTick(
+            EntityTickEvent.Post event
+    ) {
+
+        if (!(event.getEntity()
+                instanceof EnderDragon dragon)) {
+
+            return;
+        }
+
+        if (!(dragon.level()
+                instanceof ServerLevel level)) {
+
+            return;
+        }
+
+        AtaqueBolasEstado estado =
+                ATAQUES_BOLAS_ACTIVOS.get(
+                        dragon.getUUID()
+                );
+
+        if (estado == null) {
+            return;
+        }
+
+        if (!dragon.isAlive()
+                || dragon.isRemoved()) {
+
+            ATAQUES_BOLAS_ACTIVOS.remove(
+                    dragon.getUUID()
+            );
+
+            return;
+        }
+
+        BlockPos centroPortal =
+                buscarCentroPortal(
+                        level
+                );
+
+        dragon.setPos(
+                centroPortal.getX() + 0.5D,
+                centroPortal.getY()
+                        + ALTURA_SOBRE_PORTAL_ATAQUE_5,
+                centroPortal.getZ() + 0.5D
+        );
+
+        dragon.setDeltaMovement(
+                Vec3.ZERO
+        );
+
+        if (estado.ticksHastaDisparo > 0) {
+
+            estado.ticksHastaDisparo--;
+
+            return;
+        }
+
+        if (estado.objetivoActual
+                >= estado.objetivos.size()) {
+
+            ATAQUES_BOLAS_ACTIVOS.remove(
+                    dragon.getUUID()
+            );
+
+            return;
+        }
+
+        UUID uuidObjetivo =
+                estado.objetivos.get(
+                        estado.objetivoActual
+                );
+
+        ServerPlayer objetivo =
+                level.getServer()
+                        .getPlayerList()
+                        .getPlayer(
+                                uuidObjetivo
+                        );
+
+        estado.objetivoActual++;
+
+        estado.ticksHastaDisparo =
+                INTERVALO_DISPAROS_ATAQUE_5;
+
+        if (objetivo == null
+                || !objetivo.isAlive()
+                || objetivo.isSpectator()
+                || objetivo.level() != level) {
+
+            return;
+        }
+
+        girarDragonHaciaJugador(
+                dragon,
+                objetivo
+        );
+
+        lanzarBolaDeFuego(
+                level,
+                dragon,
+                objetivo
+        );
+    }
+
+    private static void girarDragonHaciaJugador(
+            EnderDragon dragon,
+            ServerPlayer objetivo
+    ) {
+
+        double diferenciaX =
+                objetivo.getX()
+                        - dragon.getX();
+
+        double diferenciaY =
+                objetivo.getEyeY()
+                        - dragon.getEyeY();
+
+        double diferenciaZ =
+                objetivo.getZ()
+                        - dragon.getZ();
+
+        double distanciaHorizontal =
+                Math.sqrt(
+                        diferenciaX * diferenciaX
+                                + diferenciaZ * diferenciaZ
+                );
+
+        float rotacionHorizontal =
+                (float) (
+                        Math.toDegrees(
+                                Math.atan2(
+                                        diferenciaZ,
+                                        diferenciaX
+                                )
+                        ) - 90.0D
+                );
+
+        float rotacionVertical =
+                (float) (
+                        -Math.toDegrees(
+                                Math.atan2(
+                                        diferenciaY,
+                                        distanciaHorizontal
+                                )
+                        )
+                );
+
+        dragon.setYRot(
+                rotacionHorizontal
+        );
+
+        dragon.setXRot(
+                rotacionVertical
+        );
+
+        dragon.yBodyRot =
+                rotacionHorizontal;
+    }
+
+    private static void lanzarBolaDeFuego(
+            ServerLevel level,
+            EnderDragon dragon,
+            ServerPlayer objetivo
+    ) {
+
+        Projectile bola =
+                EntityTypes.FIREBALL.create(
+                        level,
+                        EntitySpawnReason.TRIGGERED
+                );
+
+        if (bola == null) {
+            return;
+        }
+
+        double origenX =
+                dragon.getX();
+
+        double origenY =
+                dragon.getEyeY();
+
+        double origenZ =
+                dragon.getZ();
+
+        double objetivoX =
+                objetivo.getX();
+
+        double objetivoY =
+                objetivo.getEyeY();
+
+        double objetivoZ =
+                objetivo.getZ();
+
+        Vec3 direccion =
+                new Vec3(
+                        objetivoX - origenX,
+                        objetivoY - origenY,
+                        objetivoZ - origenZ
+                ).normalize();
+
+        bola.setPos(
+                origenX
+                        + direccion.x * 4.0D,
+                origenY
+                        + direccion.y * 2.0D,
+                origenZ
+                        + direccion.z * 4.0D
+        );
+
+        bola.setOwner(
+                dragon
+        );
+
+        bola.shoot(
+                direccion.x,
+                direccion.y,
+                direccion.z,
+                VELOCIDAD_BOLA_ATAQUE_5,
+                0.0F
+        );
+
+        boolean anadida =
+                level.addFreshEntity(
+                        bola
+                );
+
+        if (!anadida) {
+            return;
+        }
+
+        establecerPotenciaBola(
+                level,
+                bola
+        );
+    }
+
+    private static void establecerPotenciaBola(
+            ServerLevel level,
+            Projectile bola
+    ) {
+
+        String comando =
+                "data merge entity "
+                        + bola.getUUID()
+                        + " {ExplosionPower:"
+                        + POTENCIA_BOLA_ATAQUE_5
+                        + "}";
+
+        level.getServer()
+                .getCommands()
+                .performPrefixedCommand(
+                        level.getServer()
+                                .createCommandSourceStack()
+                                .withSuppressedOutput(),
+                        comando
+                );
     }
 
     private WingedDemonAttackEvents() {
