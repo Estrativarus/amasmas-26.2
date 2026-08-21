@@ -1140,6 +1140,42 @@ public final class SkeletonClassEvents {
                 );
     }
 
+    public static void configurarClaseCincoExterna(
+            ServerLevel level,
+            Mob witherSkeleton
+    ) {
+
+        if (witherSkeleton.getType()
+                != EntityTypes.WITHER_SKELETON) {
+
+            return;
+        }
+
+        configurarClaseCinco(
+                level,
+                witherSkeleton
+        );
+
+        int diaActual =
+                SistemaDiasSavedData
+                        .get(level.getServer())
+                        .getDiaActual();
+
+        if (diaActual >= DIA_MEJORA) {
+
+            aplicarMejoraDia14(
+                    level,
+                    witherSkeleton
+            );
+        }
+
+        witherSkeleton.setPersistenceRequired();
+
+        bloquearDropsEquipamiento(
+                witherSkeleton
+        );
+    }
+
     private SkeletonClassEvents() {
     }
 }

@@ -13,6 +13,11 @@ import net.minecraft.world.entity.boss.enderdragon.EnderDragon;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.event.tick.EntityTickEvent;
+import com.estrativarus.amasmas.mob.SkeletonClassEvents;
+import net.minecraft.core.BlockPos;
+import net.minecraft.util.RandomSource;
+import net.minecraft.world.level.levelgen.Heightmap;
+import net.minecraft.world.level.block.Blocks;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -37,7 +42,17 @@ public final class WingedDemonAttackEvents {
             2;
 
     private static final int ATAQUES_IMPLEMENTADOS =
+            3;
+
+    private static final int CANTIDAD_ESQUELETOS_ATAQUE_3 =
             2;
+
+    private static final int RADIO_ATAQUE_3 =
+            20;
+
+    private static final int INTENTOS_POSICION_ATAQUE_3 =
+            20;
+
 
     private static final Map<UUID, Long>
             PROXIMO_ATAQUE_POR_DRAGON =
@@ -244,6 +259,12 @@ public final class WingedDemonAttackEvents {
                             dragon
                     );
 
+            case 3 ->
+                    ataqueInvocarEsqueletos(
+                            level,
+                            dragon
+                    );
+
             default -> {
             }
         }
@@ -375,6 +396,201 @@ public final class WingedDemonAttackEvents {
         level.addFreshEntity(
                 vex
         );
+    }
+
+    private static void ataqueInvocarEsqueletos(
+            ServerLevel level,
+            EnderDragon dragon
+    ) {
+
+        BlockPos centroBatalla =
+                buscarCentroPortal(
+                        level
+                );
+
+        RandomSource random =
+                level.getRandom();
+
+        for (int i = 0;
+             i < CANTIDAD_ESQUELETOS_ATAQUE_3;
+             i++) {
+
+            BlockPos posicionAparicion =
+                    buscarPosicionAtaqueTres(
+                            level,
+                            centroBatalla,
+                            random
+                    );
+
+            if (posicionAparicion == null) {
+                continue;
+            }
+
+            Mob witherSkeleton =
+                    EntityTypes.WITHER_SKELETON.create(
+                            level,
+                            EntitySpawnReason.TRIGGERED
+                    );
+
+            if (witherSkeleton == null) {
+                continue;
+            }
+
+            witherSkeleton.setPos(
+                    posicionAparicion.getX() + 0.5D,
+                    posicionAparicion.getY(),
+                    posicionAparicion.getZ() + 0.5D
+            );
+
+            witherSkeleton.setYRot(
+                    random.nextFloat() * 360.0F
+            );
+
+            witherSkeleton.setXRot(
+                    0.0F
+            );
+
+            SkeletonClassEvents
+                    .configurarClaseCincoExterna(
+                            level,
+                            witherSkeleton
+                    );
+
+            level.addFreshEntity(
+                    witherSkeleton
+            );
+        }
+    }
+
+    private static BlockPos buscarCentroPortal(
+            ServerLevel level
+    ) {
+
+        int alturaInicial =
+                level.getHeight(
+                        Heightmap.Types.MOTION_BLOCKING_NO_LEAVES,
+                        0,
+                        0
+                );
+
+        for (int y = alturaInicial + 10;
+             y >= level.getMinY();
+             y--) {
+
+            BlockPos posicion =
+                    new BlockPos(
+                            0,
+                            y,
+                            0
+                    );
+
+            if (level
+                    .getBlockState(
+                            posicion
+                    )
+                    .is(
+                            Blocks.BEDROCK
+                    )) {
+
+                return posicion;
+            }
+        }
+
+        return new BlockPos(
+                0,
+                alturaInicial,
+                0
+        );
+    }
+
+    private static BlockPos buscarPosicionAtaqueTres(
+            ServerLevel level,
+            BlockPos centroBatalla,
+            RandomSource random
+    ) {
+
+        for (int intento = 0;
+             intento < INTENTOS_POSICION_ATAQUE_3;
+             intento++) {
+
+            double angulo =
+                    random.nextDouble()
+                            * Math.PI
+                            * 2.0D;
+
+            double distancia =
+                    Math.sqrt(
+                            random.nextDouble()
+                    ) * RADIO_ATAQUE_3;
+
+            int desplazamientoX =
+                    (int) Math.round(
+                            Math.cos(angulo)
+                                    * distancia
+                    );
+
+            int desplazamientoZ =
+                    (int) Math.round(
+                            Math.sin(angulo)
+                                    * distancia
+                    );
+
+            int x =
+                    centroBatalla.getX()
+                            + desplazamientoX;
+
+            int z =
+                    centroBatalla.getZ()
+                            + desplazamientoZ;
+
+            int ySuelo =
+                    level.getHeight(
+                            Heightmap.Types.MOTION_BLOCKING_NO_LEAVES,
+                            x,
+                            z
+                    );
+
+            BlockPos posicion =
+                    new BlockPos(
+                            x,
+                            ySuelo,
+                            z
+                    );
+
+            BlockPos bloqueInferior =
+                    posicion.below();
+
+            if (level
+                    .getBlockState(
+                            bloqueInferior
+                    )
+                    .isAir()) {
+
+                continue;
+            }
+
+            if (!level
+                    .getBlockState(
+                            posicion
+                    )
+                    .isAir()) {
+
+                continue;
+            }
+
+            if (!level
+                    .getBlockState(
+                            posicion.above()
+                    )
+                    .isAir()) {
+
+                continue;
+            }
+
+            return posicion;
+        }
+
+        return null;
     }
 
     private WingedDemonAttackEvents() {
