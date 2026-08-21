@@ -51,7 +51,7 @@ public final class WingedDemonAttackEvents {
     private static final int MICRO_DEMONIOS_POR_JUGADOR =
             2;
 
-    private static final int[] ATAQUES_SELECCIONABLES = {
+    private static final int[] ATAQUES_MODO_NORMAL = {
             1,
             2,
             3,
@@ -60,6 +60,32 @@ public final class WingedDemonAttackEvents {
             7,
             8
     };
+
+    private static final int[] ATAQUES_MODO_CABREO = {
+            1,
+            1,
+            1,
+
+            2,
+            2,
+            2,
+            2,
+
+            3,
+            3,
+            3,
+
+            4,
+
+            5,
+
+            7,
+            7,
+            7,
+
+            8
+    };
+
     private static final int CANTIDAD_ESQUELETOS_ATAQUE_3 =
             2;
 
@@ -133,6 +159,9 @@ public final class WingedDemonAttackEvents {
 
     private static final double ALTURA_MINI_WITHERS_ATAQUE_8 =
             8.0D;
+
+    private static final String TAG_INTERVALO_CABREO_AJUSTADO =
+            "amasmas_intervalo_cabreo_ajustado";
 
     @SubscribeEvent
     public static void onWingedDemonTick(
@@ -216,6 +245,10 @@ public final class WingedDemonAttackEvents {
         );
 
         programarSiguienteAtaque(
+                level,
+                dragon
+        );
+        ajustarTemporizadorModoCabreo(
                 level,
                 dragon
         );
@@ -324,33 +357,43 @@ public final class WingedDemonAttackEvents {
         );
     }
 
+    private static int seleccionarAtaque(
+            EnderDragon dragon
+    ) {
+
+        int[] poolAtaques;
+
+        if (WingedDemonEvents
+                .estaEnModoCabreo(
+                        dragon
+                )) {
+
+            poolAtaques =
+                    ATAQUES_MODO_CABREO;
+
+        } else {
+
+            poolAtaques =
+                    ATAQUES_MODO_NORMAL;
+        }
+
+        int indice =
+                dragon
+                        .getRandom()
+                        .nextInt(
+                                poolAtaques.length
+                        );
+
+        return poolAtaques[indice];
+    }
+
     private static void ejecutarAtaqueAleatorio(
             ServerLevel level,
             EnderDragon dragon
     ) {
 
-        int indiceAtaque =
-                dragon
-                        .getRandom()
-                        .nextInt(
-                                ATAQUES_SELECCIONABLES.length
-                        );
-
-        int[] ataquesDisponibles = {
-                1,
-                2,
-                3,
-                4,
-                5,
-                8
-        };
-
         int ataqueSeleccionado =
-                ataquesDisponibles[
-                        level.getRandom().nextInt(
-                                ataquesDisponibles.length
-                        )
-                        ];
+                seleccionarAtaque(dragon);
 
         switch (ataqueSeleccionado) {
 
@@ -1973,6 +2016,43 @@ public final class WingedDemonAttackEvents {
             }
         }
     }
+
+    private static void ajustarTemporizadorModoCabreo(
+            ServerLevel level,
+            EnderDragon dragon
+    ) {
+
+        if (!WingedDemonEvents
+                .estaEnModoCabreo(
+                        dragon
+                )) {
+
+            return;
+        }
+
+        if (dragon
+                .getPersistentData()
+                .contains(
+                        TAG_INTERVALO_CABREO_AJUSTADO
+                )) {
+
+            return;
+        }
+
+        dragon
+                .getPersistentData()
+                .putBoolean(
+                        TAG_INTERVALO_CABREO_AJUSTADO,
+                        true
+                );
+
+        PROXIMO_ATAQUE_POR_DRAGON.put(
+                dragon.getUUID(),
+                level.getGameTime()
+                        + TICKS_ENTRE_ATAQUES_CABREO
+        );
+    }
+
 
     private WingedDemonAttackEvents() {
     }
