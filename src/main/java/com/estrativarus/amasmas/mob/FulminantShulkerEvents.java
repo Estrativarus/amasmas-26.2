@@ -488,6 +488,24 @@ public final class FulminantShulkerEvents {
                 );
     }
 
+    public static void crearTntFulminanteDeAtaque(
+            ServerLevel level,
+            double x,
+            double y,
+            double z,
+            LivingEntity propietario
+    ) {
+
+        crearTntFulminante(
+                level,
+                x,
+                y,
+                z,
+                propietario,
+                50
+        );
+    }
+
     private FulminantShulkerEvents() {
     }
 }

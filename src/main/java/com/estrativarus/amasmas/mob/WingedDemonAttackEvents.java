@@ -37,7 +37,7 @@ public final class WingedDemonAttackEvents {
             2;
 
     private static final int ATAQUES_IMPLEMENTADOS =
-            1;
+            2;
 
     private static final Map<UUID, Long>
             PROXIMO_ATAQUE_POR_DRAGON =
@@ -114,6 +114,81 @@ public final class WingedDemonAttackEvents {
         );
     }
 
+    private static void ataqueBombardeoTnt(
+            ServerLevel level,
+            EnderDragon dragon
+    ) {
+
+        for (int numero = 0;
+             numero < 4;
+             numero++) {
+
+            double angulo =
+                    dragon
+                            .getRandom()
+                            .nextDouble()
+                            * Math.PI
+                            * 2.0D;
+
+            double distancia =
+                    1.5D
+                            + dragon
+                            .getRandom()
+                            .nextDouble()
+                            * 2.5D;
+
+            double x =
+                    dragon.getX()
+                            + Math.cos(angulo)
+                            * distancia;
+
+            double y =
+                    dragon.getY()
+                            - 1.0D
+                            + dragon
+                            .getRandom()
+                            .nextDouble()
+                            * 2.0D;
+
+            double z =
+                    dragon.getZ()
+                            + Math.sin(angulo)
+                            * distancia;
+
+            FulminantShulkerEvents
+                    .crearTntFulminanteDeAtaque(
+                            level,
+                            x,
+                            y,
+                            z,
+                            dragon
+                    );
+        }
+
+        level.sendParticles(
+                ParticleTypes.SMOKE,
+                dragon.getX(),
+                dragon.getY(),
+                dragon.getZ(),
+                80,
+                4.0D,
+                2.0D,
+                4.0D,
+                0.08D
+        );
+
+        level.playSound(
+                null,
+                dragon.getX(),
+                dragon.getY(),
+                dragon.getZ(),
+                SoundEvents.TNT_PRIMED,
+                SoundSource.HOSTILE,
+                3.0F,
+                0.65F
+        );
+    }
+
     private static void programarSiguienteAtaque(
             ServerLevel level,
             EnderDragon dragon
@@ -159,6 +234,12 @@ public final class WingedDemonAttackEvents {
 
             case 1 ->
                     ataqueInvocarMicroDemonios(
+                            level,
+                            dragon
+                    );
+
+            case 2 ->
+                    ataqueBombardeoTnt(
                             level,
                             dragon
                     );
