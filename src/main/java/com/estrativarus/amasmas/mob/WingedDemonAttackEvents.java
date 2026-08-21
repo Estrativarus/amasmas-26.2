@@ -18,6 +18,13 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.level.levelgen.Heightmap;
 import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.entity.boss.enderdragon.EndCrystal;
+import net.minecraft.world.level.levelgen.feature.EndSpikeFeature;
+import net.minecraft.world.phys.AABB;
+
+import java.util.ArrayList;
+import java.util.List;
+
 
 import java.util.HashMap;
 import java.util.Map;
@@ -42,7 +49,7 @@ public final class WingedDemonAttackEvents {
             2;
 
     private static final int ATAQUES_IMPLEMENTADOS =
-            3;
+            4;
 
     private static final int CANTIDAD_ESQUELETOS_ATAQUE_3 =
             2;
@@ -238,12 +245,7 @@ public final class WingedDemonAttackEvents {
     ) {
 
         int ataqueSeleccionado =
-                dragon
-                        .getRandom()
-                        .nextInt(
-                                ATAQUES_IMPLEMENTADOS
-                        )
-                        + 1;
+                level.getRandom().nextInt(4) + 1;
 
         switch (ataqueSeleccionado) {
 
@@ -261,6 +263,12 @@ public final class WingedDemonAttackEvents {
 
             case 3 ->
                     ataqueInvocarEsqueletos(
+                            level,
+                            dragon
+                    );
+
+            case 4 ->
+                    ataqueRegenerarCristal(
                             level,
                             dragon
                     );
@@ -591,6 +599,129 @@ public final class WingedDemonAttackEvents {
         }
 
         return null;
+    }
+
+    private static void ataqueRegenerarCristal(
+            ServerLevel level,
+            EnderDragon dragon
+    ) {
+
+        List<EndSpikeFeature.EndSpike> torres =
+                EndSpikeFeature.getSpikesForLevel(
+                        level
+                );
+
+        if (torres.isEmpty()) {
+            return;
+        }
+
+        List<EndSpikeFeature.EndSpike> torresSinCristal =
+                new ArrayList<>();
+
+        for (EndSpikeFeature.EndSpike torre :
+                torres) {
+
+            if (!torreTieneCristal(
+                    level,
+                    torre
+            )) {
+
+                torresSinCristal.add(
+                        torre
+                );
+            }
+        }
+
+        if (torresSinCristal.isEmpty()) {
+            return;
+        }
+
+        EndSpikeFeature.EndSpike torreElegida =
+                torresSinCristal.get(
+                        level.getRandom().nextInt(
+                                torresSinCristal.size()
+                        )
+                );
+
+        crearCristalEnTorre(
+                level,
+                torreElegida
+        );
+    }
+
+    private static boolean torreTieneCristal(
+            ServerLevel level,
+            EndSpikeFeature.EndSpike torre
+    ) {
+
+        double x =
+                torre.getCenterX() + 0.5D;
+
+        double y =
+                torre.getHeight() + 1.0D;
+
+        double z =
+                torre.getCenterZ() + 0.5D;
+
+        AABB zonaBusqueda =
+                new AABB(
+                        x - 2.0D,
+                        y - 2.0D,
+                        z - 2.0D,
+                        x + 2.0D,
+                        y + 3.0D,
+                        z + 2.0D
+                );
+
+        List<EndCrystal> cristales =
+                level.getEntitiesOfClass(
+                        EndCrystal.class,
+                        zonaBusqueda,
+                        cristal ->
+                                cristal.isAlive()
+                                        && !cristal.isRemoved()
+                );
+
+        return !cristales.isEmpty();
+    }
+
+    private static void crearCristalEnTorre(
+            ServerLevel level,
+            EndSpikeFeature.EndSpike torre
+    ) {
+
+        EndCrystal cristal =
+                EntityTypes.END_CRYSTAL.create(
+                        level,
+                        EntitySpawnReason.TRIGGERED
+                );
+
+        if (cristal == null) {
+            return;
+        }
+
+        double x =
+                torre.getCenterX() + 0.5D;
+
+        double y =
+                torre.getHeight() + 1.0D;
+
+        double z =
+                torre.getCenterZ() + 0.5D;
+
+        cristal.setPos(
+                x,
+                y,
+                z
+        );
+
+        cristal.setShowBottom(
+                false
+        );
+
+        level.addFreshEntity(
+                cristal
+        );
     }
 
     private WingedDemonAttackEvents() {
