@@ -20,6 +20,12 @@ import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.event.entity.EntityJoinLevelEvent;
 import net.neoforged.neoforge.event.tick.EntityTickEvent;
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.world.item.equipment.trim.ArmorTrim;
+import net.minecraft.world.item.equipment.trim.TrimMaterial;
+import net.minecraft.world.item.equipment.trim.TrimMaterials;
+import net.minecraft.world.item.equipment.trim.TrimPattern;
+import net.minecraft.world.item.equipment.trim.TrimPatterns;
 
 @EventBusSubscriber(modid = Amasmas.MOD_ID)
 public class ZombieClassEvents {
@@ -44,6 +50,9 @@ public class ZombieClassEvents {
 
     private static final String TAG_TANQUE =
             "amasmas_zombie_tanque";
+
+    private static final String TAG_EVOLUCION_DIA_14 =
+            "amasmas_zombie_evolucion_dia_14";
 
     /*
      * Velocidad vertical utilizada por el zombi modificado
@@ -107,32 +116,11 @@ public class ZombieClassEvents {
             Mob zombie
     ) {
 
-        /*
-         * Es posible que la entidad haya desaparecido antes
-         * de que se ejecute la tarea aplazada.
-         */
         if (!zombie.isAlive()
                 || zombie.isRemoved()) {
-            return;
-        }
-
-        /*
-         * Evitamos procesar dos veces la misma entidad.
-         */
-        if (zombie
-                .getPersistentData()
-                .contains(TAG_CLASIFICADO)) {
 
             return;
         }
-
-        /*
-         * Marcamos la entidad antes de continuar.
-         *
-         * De esta forma nunca se reclasificará al cargar
-         * chunks o cambiar de día.
-         */
-        zombie.addTag(TAG_CLASIFICADO);
 
         MinecraftServer server =
                 level.getServer();
@@ -142,58 +130,75 @@ public class ZombieClassEvents {
                         .get(server)
                         .getDiaActual();
 
-        /*
-         * Estas cuatro clases solo existen del día 7 al 13.
-         */
-        if (diaActual < 7 || diaActual > 13) {
+        if (diaActual < 7) {
             return;
         }
 
-        /*
-         * Si el zombi está sobre una montura no muerta,
-         * siempre será de la clase Jinete.
-         */
-        if (estaEnMonturaEspecial(zombie)) {
-            configurarJinete(level, zombie);
-            return;
+        boolean clasificado =
+                zombie
+                        .getPersistentData()
+                        .contains(
+                                TAG_CLASIFICADO
+                        );
+
+        if (!clasificado) {
+
+            zombie
+                    .getPersistentData()
+                    .putBoolean(
+                            TAG_CLASIFICADO,
+                            true
+                    );
+
+            if (estaEnMonturaEspecial(zombie)) {
+
+                configurarJinete(
+                        level,
+                        zombie
+                );
+
+            } else {
+
+                int clase =
+                        zombie
+                                .getRandom()
+                                .nextInt(4);
+
+                switch (clase) {
+
+                    case 0 ->
+                            configurarGuerrero(
+                                    level,
+                                    zombie
+                            );
+
+                    case 1 ->
+                            configurarJinete(
+                                    level,
+                                    zombie
+                            );
+
+                    case 2 ->
+                            configurarModificado(
+                                    level,
+                                    zombie
+                            );
+
+                    default ->
+                            configurarTanque(
+                                    level,
+                                    zombie
+                            );
+                }
+            }
         }
 
-        /*
-         * Cuatro posibilidades equiprobables:
-         *
-         * 0 = Guerrero
-         * 1 = Jinete
-         * 2 = Modificado
-         * 3 = Tanque
-         */
-        int clase =
-                zombie.getRandom().nextInt(4);
+        if (diaActual >= 14) {
 
-        switch (clase) {
-
-            case 0 ->
-                    configurarGuerrero(
-                            level,
-                            zombie
-                    );
-
-            case 1 ->
-                    configurarJinete(
-                            level,
-                            zombie
-                    );
-
-            case 2 ->
-                    configurarModificado(
-                            level,
-                            zombie
-                    );
-
-            default ->
-                    configurarTanque(
-                            level,
-                            zombie
-                    );
+            aplicarEvolucionDia14(
+                    level,
+                    zombie
+            );
         }
     }
 
@@ -221,6 +226,483 @@ public class ZombieClassEvents {
      * Armadura completa de cuero con Protección II.
      * Espada de piedra con Filo I.
      */
+    private static void aplicarEvolucionDia14(
+            ServerLevel level,
+            Mob zombie
+    ) {
+
+        if (zombie
+                .getPersistentData()
+                .contains(
+                        TAG_EVOLUCION_DIA_14
+                )) {
+
+            return;
+        }
+
+        if (estaEnMonturaEspecial(zombie)) {
+
+            limpiarMarcasDeClase(
+                    zombie
+            );
+
+            zombie
+                    .getPersistentData()
+                    .putBoolean(
+                            TAG_JINETE,
+                            true
+                    );
+
+            evolucionarJineteDia14(
+                    level,
+                    zombie
+            );
+
+        } else if (zombie
+                .getPersistentData()
+                .contains(TAG_GUERRERO)) {
+
+            evolucionarGuerreroDia14(
+                    level,
+                    zombie
+            );
+
+        } else if (zombie
+                .getPersistentData()
+                .contains(TAG_JINETE)) {
+
+            evolucionarJineteDia14(
+                    level,
+                    zombie
+            );
+
+        } else if (zombie
+                .getPersistentData()
+                .contains(TAG_MODIFICADO)) {
+
+            evolucionarModificadoDia14(
+                    level,
+                    zombie
+            );
+
+        } else if (zombie
+                .getPersistentData()
+                .contains(TAG_TANQUE)) {
+
+            evolucionarTanqueDia14(
+                    level,
+                    zombie
+            );
+
+        } else {
+
+            return;
+        }
+
+        zombie
+                .getPersistentData()
+                .putBoolean(
+                        TAG_EVOLUCION_DIA_14,
+                        true
+                );
+    }
+
+    private static void evolucionarGuerreroDia14(
+            ServerLevel level,
+            Mob zombie
+    ) {
+
+        ItemStack casco =
+                crearPiezaEncantada(
+                        level,
+                        Items.IRON_HELMET,
+                        Enchantments.PROTECTION,
+                        2
+                );
+
+        ItemStack pechera =
+                crearPiezaEncantada(
+                        level,
+                        Items.IRON_CHESTPLATE,
+                        Enchantments.PROTECTION,
+                        2
+                );
+
+        ItemStack pantalones =
+                crearPiezaEncantada(
+                        level,
+                        Items.IRON_LEGGINGS,
+                        Enchantments.PROTECTION,
+                        2
+                );
+
+        ItemStack botas =
+                crearPiezaEncantada(
+                        level,
+                        Items.IRON_BOOTS,
+                        Enchantments.PROTECTION,
+                        2
+                );
+
+        aplicarRibeteSilenceNetherite(
+                level,
+                casco
+        );
+
+        aplicarRibeteSilenceNetherite(
+                level,
+                pechera
+        );
+
+        aplicarRibeteSilenceNetherite(
+                level,
+                pantalones
+        );
+
+        aplicarRibeteSilenceNetherite(
+                level,
+                botas
+        );
+
+        equiparArmadura(
+                zombie,
+                casco,
+                pechera,
+                pantalones,
+                botas
+        );
+
+        equiparEncantado(
+                level,
+                zombie,
+                EquipmentSlot.MAINHAND,
+                Items.IRON_SWORD,
+                Enchantments.SHARPNESS,
+                2
+        );
+
+        impedirDropsDeEquipamiento(
+                zombie
+        );
+    }
+
+    private static void evolucionarJineteDia14(
+            ServerLevel level,
+            Mob zombie
+    ) {
+
+        equiparEncantado(
+                level,
+                zombie,
+                EquipmentSlot.HEAD,
+                Items.DIAMOND_HELMET,
+                Enchantments.PROJECTILE_PROTECTION,
+                3
+        );
+
+        equiparEncantado(
+                level,
+                zombie,
+                EquipmentSlot.CHEST,
+                Items.DIAMOND_CHESTPLATE,
+                Enchantments.PROJECTILE_PROTECTION,
+                3
+        );
+
+        equiparEncantado(
+                level,
+                zombie,
+                EquipmentSlot.LEGS,
+                Items.DIAMOND_LEGGINGS,
+                Enchantments.PROJECTILE_PROTECTION,
+                3
+        );
+
+        equiparEncantado(
+                level,
+                zombie,
+                EquipmentSlot.FEET,
+                Items.DIAMOND_BOOTS,
+                Enchantments.PROJECTILE_PROTECTION,
+                3
+        );
+
+        equiparEncantado(
+                level,
+                zombie,
+                EquipmentSlot.MAINHAND,
+                Items.IRON_SPEAR,
+                Enchantments.SHARPNESS,
+                2
+        );
+
+        impedirDropsDeEquipamiento(
+                zombie
+        );
+    }
+
+    private static void evolucionarModificadoDia14(
+            ServerLevel level,
+            Mob zombie
+    ) {
+
+        equiparEncantado(
+                level,
+                zombie,
+                EquipmentSlot.HEAD,
+                Items.DIAMOND_HELMET,
+                Enchantments.PROTECTION,
+                3
+        );
+
+        equiparEncantado(
+                level,
+                zombie,
+                EquipmentSlot.CHEST,
+                Items.IRON_CHESTPLATE,
+                Enchantments.PROTECTION,
+                3
+        );
+
+        equiparEncantado(
+                level,
+                zombie,
+                EquipmentSlot.LEGS,
+                Items.DIAMOND_LEGGINGS,
+                Enchantments.PROTECTION,
+                3
+        );
+
+        equiparEncantado(
+                level,
+                zombie,
+                EquipmentSlot.FEET,
+                Items.IRON_BOOTS,
+                Enchantments.PROTECTION,
+                3
+        );
+
+        equiparEncantado(
+                level,
+                zombie,
+                EquipmentSlot.MAINHAND,
+                Items.DIAMOND_SWORD,
+                Enchantments.SHARPNESS,
+                3
+        );
+
+        impedirDropsDeEquipamiento(
+                zombie
+        );
+    }
+
+    private static void evolucionarTanqueDia14(
+            ServerLevel level,
+            Mob zombie
+    ) {
+
+        equiparEncantado(
+                level,
+                zombie,
+                EquipmentSlot.HEAD,
+                Items.DIAMOND_HELMET,
+                Enchantments.PROTECTION,
+                4
+        );
+
+        equiparEncantado(
+                level,
+                zombie,
+                EquipmentSlot.CHEST,
+                Items.DIAMOND_CHESTPLATE,
+                Enchantments.PROTECTION,
+                4
+        );
+
+        equiparEncantado(
+                level,
+                zombie,
+                EquipmentSlot.LEGS,
+                Items.DIAMOND_LEGGINGS,
+                Enchantments.PROTECTION,
+                4
+        );
+
+        equiparEncantado(
+                level,
+                zombie,
+                EquipmentSlot.FEET,
+                Items.DIAMOND_BOOTS,
+                Enchantments.PROTECTION,
+                4
+        );
+
+        ItemStack hacha =
+                new ItemStack(
+                        Items.DIAMOND_AXE
+                );
+
+        anadirEncantamiento(
+                level,
+                hacha,
+                Enchantments.KNOCKBACK,
+                10
+        );
+
+        anadirEncantamiento(
+                level,
+                hacha,
+                Enchantments.SHARPNESS,
+                3
+        );
+
+        zombie.setItemSlot(
+                EquipmentSlot.MAINHAND,
+                hacha
+        );
+
+        impedirDropsDeEquipamiento(
+                zombie
+        );
+    }
+
+    private static ItemStack crearPiezaEncantada(
+            ServerLevel level,
+            Item item,
+            net.minecraft.resources.ResourceKey<Enchantment>
+                    enchantmentKey,
+            int nivel
+    ) {
+
+        ItemStack stack =
+                new ItemStack(
+                        item
+                );
+
+        anadirEncantamiento(
+                level,
+                stack,
+                enchantmentKey,
+                nivel
+        );
+
+        return stack;
+    }
+
+    private static void anadirEncantamiento(
+            ServerLevel level,
+            ItemStack stack,
+            net.minecraft.resources.ResourceKey<Enchantment>
+                    enchantmentKey,
+            int nivel
+    ) {
+
+        Registry<Enchantment> registro =
+                level
+                        .registryAccess()
+                        .lookupOrThrow(
+                                Registries.ENCHANTMENT
+                        );
+
+        Holder.Reference<Enchantment> encantamiento =
+                registro.getOrThrow(
+                        enchantmentKey
+                );
+
+        stack.enchant(
+                encantamiento,
+                nivel
+        );
+    }
+
+    private static void equiparArmadura(
+            Mob zombie,
+            ItemStack casco,
+            ItemStack pechera,
+            ItemStack pantalones,
+            ItemStack botas
+    ) {
+
+        zombie.setItemSlot(
+                EquipmentSlot.HEAD,
+                casco
+        );
+
+        zombie.setItemSlot(
+                EquipmentSlot.CHEST,
+                pechera
+        );
+
+        zombie.setItemSlot(
+                EquipmentSlot.LEGS,
+                pantalones
+        );
+
+        zombie.setItemSlot(
+                EquipmentSlot.FEET,
+                botas
+        );
+    }
+
+    private static void limpiarMarcasDeClase(
+            Mob zombie
+    ) {
+
+        zombie
+                .getPersistentData()
+                .remove(TAG_GUERRERO);
+
+        zombie
+                .getPersistentData()
+                .remove(TAG_JINETE);
+
+        zombie
+                .getPersistentData()
+                .remove(TAG_MODIFICADO);
+
+        zombie
+                .getPersistentData()
+                .remove(TAG_TANQUE);
+    }
+
+    private static void aplicarRibeteSilenceNetherite(
+            ServerLevel level,
+            ItemStack pieza
+    ) {
+
+        Registry<TrimPattern> patrones =
+                level
+                        .registryAccess()
+                        .lookupOrThrow(
+                                Registries.TRIM_PATTERN
+                        );
+
+        Registry<TrimMaterial> materiales =
+                level
+                        .registryAccess()
+                        .lookupOrThrow(
+                                Registries.TRIM_MATERIAL
+                        );
+
+        Holder.Reference<TrimPattern> patron =
+                patrones.getOrThrow(
+                        TrimPatterns.SILENCE
+                );
+
+        Holder.Reference<TrimMaterial> material =
+                materiales.getOrThrow(
+                        TrimMaterials.NETHERITE
+                );
+
+        pieza.set(
+                DataComponents.TRIM,
+                new ArmorTrim(
+                        material,
+                        patron
+                )
+        );
+    }
+
     private static void configurarGuerrero(
             ServerLevel level,
             Mob zombie
@@ -574,13 +1056,66 @@ public class ZombieClassEvents {
             EntityTickEvent.Post event
     ) {
 
-        if (!(event.getEntity() instanceof Mob zombie)) {
+        if (!(event.getEntity()
+                instanceof Mob zombie)) {
+
             return;
         }
 
-        /*
-         * Solo los zombis que recibieron la clase Modificado.
-         */
+        if (zombie.getType()
+                != EntityTypes.ZOMBIE
+                && zombie.getType()
+                != EntityTypes.HUSK) {
+
+            return;
+        }
+
+        if (!(zombie.level()
+                instanceof ServerLevel level)) {
+
+            return;
+        }
+
+        if ((zombie.tickCount
+                + zombie.getId()) % 100 == 0) {
+
+            clasificarZombie(
+                    level,
+                    zombie
+            );
+
+            if (estaEnMonturaEspecial(zombie)
+                    && !zombie
+                    .getPersistentData()
+                    .contains(TAG_JINETE)) {
+
+                configurarJinete(
+                        level,
+                        zombie
+                );
+
+                zombie
+                        .getPersistentData()
+                        .putBoolean(
+                                TAG_EVOLUCION_DIA_14,
+                                false
+                        );
+
+                int diaActual =
+                        SistemaDiasSavedData
+                                .get(level.getServer())
+                                .getDiaActual();
+
+                if (diaActual >= 14) {
+
+                    aplicarEvolucionDia14(
+                            level,
+                            zombie
+                    );
+                }
+            }
+        }
+
         if (!zombie
                 .getPersistentData()
                 .contains(TAG_MODIFICADO)) {
@@ -588,35 +1123,25 @@ public class ZombieClassEvents {
             return;
         }
 
-        if (!(zombie.level()
-                instanceof ServerLevel)) {
+        if (!zombie.horizontalCollision) {
             return;
         }
 
-        /*
-         * Si el zombi está chocando horizontalmente con una
-         * pared, le damos velocidad vertical.
-         *
-         * Conservamos su velocidad horizontal actual.
-         */
-        if (zombie.horizontalCollision) {
+        zombie.setDeltaMovement(
+                zombie
+                        .getDeltaMovement()
+                        .x,
+                VELOCIDAD_ESCALADA,
+                zombie
+                        .getDeltaMovement()
+                        .z
+        );
 
-            zombie.setDeltaMovement(
-                    zombie
-                            .getDeltaMovement()
-                            .x,
-                    VELOCIDAD_ESCALADA,
-                    zombie
-                            .getDeltaMovement()
-                            .z
-            );
+        zombie.fallDistance =
+                0.0F;
 
-            /*
-             * Marca el movimiento para sincronizarlo
-             * correctamente con los clientes.
-             */
-            zombie.hurtMarked = true;
-        }
+        zombie.hurtMarked =
+                true;
     }
 
     private ZombieClassEvents() {
