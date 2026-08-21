@@ -66,6 +66,14 @@ public final class WingedDemonAttackEvents {
             PROXIMO_ATAQUE_POR_DRAGON =
             new HashMap<>();
 
+    private static final Map<UUID, AtaqueSeisEstado>
+            ATAQUES_SEIS_ACTIVOS =
+            new HashMap<>();
+
+    private static final Map<UUID, Long>
+            ATAQUES_SEIS_PENDIENTES =
+            new HashMap<>();
+
     private static final int JUGADORES_ATAQUE_5 =
             3;
 
@@ -84,6 +92,21 @@ public final class WingedDemonAttackEvents {
     private static final Map<UUID, AtaqueBolasEstado>
             ATAQUES_BOLAS_ACTIVOS =
             new HashMap<>();
+
+    private static final int ESPERA_ATAQUE_6 =
+            40;
+
+    private static final int DURACION_MAXIMA_EMBESTIDA =
+            80;
+
+    private static final double VELOCIDAD_EMBESTIDA =
+            3.2D;
+
+    private static final double DISTANCIA_FINAL_EMBESTIDA =
+            4.0D;
+
+    private static final double DISTANCIA_MAXIMA_OBJETIVO =
+            192.0D;
 
 
 
@@ -118,6 +141,22 @@ public final class WingedDemonAttackEvents {
             PROXIMO_ATAQUE_POR_DRAGON.remove(
                     dragon.getUUID()
             );
+
+            ATAQUES_SEIS_PENDIENTES.remove(
+                    dragon.getUUID()
+            );
+
+            ATAQUES_SEIS_ACTIVOS.remove(
+                    dragon.getUUID()
+            );
+
+            return;
+        }
+
+        if (procesarAtaqueSeis(
+                level,
+                dragon
+        )) {
 
             return;
         }
@@ -775,11 +814,10 @@ public final class WingedDemonAttackEvents {
         }
     }
 
-    private static void ataqueBolasDeFuego(
+    private static void ataqueCinco(
             ServerLevel level,
             EnderDragon dragon
     ) {
-
         List<ServerPlayer> jugadoresValidos =
                 new ArrayList<>();
 
@@ -804,6 +842,11 @@ public final class WingedDemonAttackEvents {
 
             jugadoresValidos.add(
                     player
+            );
+
+            programarAtaqueSeis(
+                    level,
+                    dragon
             );
         }
 
@@ -1121,6 +1164,427 @@ public final class WingedDemonAttackEvents {
                         comando
                 );
     }
+
+    private static void programarAtaqueSeis(
+            ServerLevel level,
+            EnderDragon dragon
+    ) {
+
+        UUID dragonUuid =
+                dragon.getUUID();
+
+        ATAQUES_SEIS_PENDIENTES.put(
+                dragonUuid,
+                level.getGameTime()
+                        + ESPERA_ATAQUE_6
+        );
+    }
+
+    private static boolean procesarAtaqueSeis(
+            ServerLevel level,
+            EnderDragon dragon
+    ) {
+
+        UUID dragonUuid =
+                dragon.getUUID();
+
+        AtaqueSeisEstado estadoActivo =
+                ATAQUES_SEIS_ACTIVOS.get(
+                        dragonUuid
+                );
+
+        if (estadoActivo != null) {
+
+            continuarEmbestida(
+                    level,
+                    dragon,
+                    estadoActivo
+            );
+
+            return true;
+        }
+
+        Long momentoEjecucion =
+                ATAQUES_SEIS_PENDIENTES.get(
+                        dragonUuid
+                );
+
+        if (momentoEjecucion == null) {
+            return false;
+        }
+
+        if (level.getGameTime()
+                < momentoEjecucion) {
+
+            return true;
+        }
+
+        ATAQUES_SEIS_PENDIENTES.remove(
+                dragonUuid
+        );
+
+        ServerPlayer objetivo =
+                elegirJugadorAleatorio(
+                        level,
+                        dragon
+                );
+
+        if (objetivo == null) {
+            return false;
+        }
+
+        iniciarEmbestida(
+                level,
+                dragon,
+                objetivo
+        );
+
+        return true;
+    }
+
+    private static ServerPlayer elegirJugadorAleatorio(
+            ServerLevel level,
+            EnderDragon dragon
+    ) {
+
+        double distanciaMaximaCuadrada =
+                DISTANCIA_MAXIMA_OBJETIVO
+                        * DISTANCIA_MAXIMA_OBJETIVO;
+
+        java.util.List<ServerPlayer> candidatos =
+                new java.util.ArrayList<>();
+
+        for (ServerPlayer player :
+                level.players()) {
+
+            if (!player.isAlive()
+                    || player.isSpectator()) {
+
+                continue;
+            }
+
+            if (dragon.distanceToSqr(player)
+                    > distanciaMaximaCuadrada) {
+
+                continue;
+            }
+
+            candidatos.add(
+                    player
+            );
+        }
+
+        if (candidatos.isEmpty()) {
+            return null;
+        }
+
+        int indice =
+                dragon
+                        .getRandom()
+                        .nextInt(
+                                candidatos.size()
+                        );
+
+        return candidatos.get(
+                indice
+        );
+    }
+
+    private static void iniciarEmbestida(
+            ServerLevel level,
+            EnderDragon dragon,
+            ServerPlayer objetivo
+    ) {
+
+        Vec3 direccion =
+                obtenerDireccionEmbestida(
+                        dragon,
+                        objetivo
+                );
+
+        dragon.setDeltaMovement(
+                direccion.scale(
+                        VELOCIDAD_EMBESTIDA
+                )
+        );
+
+        dragon.hurtMarked =
+                true;
+
+        ATAQUES_SEIS_ACTIVOS.put(
+                dragon.getUUID(),
+                new AtaqueSeisEstado(
+                        objetivo.getUUID(),
+                        DURACION_MAXIMA_EMBESTIDA
+                )
+        );
+
+        level.sendParticles(
+                ParticleTypes.SOUL_FIRE_FLAME,
+                dragon.getX(),
+                dragon.getY() + 2.0D,
+                dragon.getZ(),
+                100,
+                4.0D,
+                2.0D,
+                4.0D,
+                0.15D
+        );
+
+        level.playSound(
+                null,
+                dragon.getX(),
+                dragon.getY(),
+                dragon.getZ(),
+                SoundEvents.ENDER_DRAGON_GROWL,
+                SoundSource.HOSTILE,
+                4.0F,
+                0.75F
+        );
+    }
+
+    private static void continuarEmbestida(
+            ServerLevel level,
+            EnderDragon dragon,
+            AtaqueSeisEstado estado
+    ) {
+
+        ServerPlayer objetivo =
+                level.getServer()
+                        .getPlayerList()
+                        .getPlayer(
+                                estado.objetivo
+                        );
+
+        if (objetivo == null
+                || !objetivo.isAlive()
+                || objetivo.isSpectator()
+                || objetivo.level() != dragon.level()) {
+
+            terminarEmbestida(
+                    dragon
+            );
+
+            return;
+        }
+
+        double distanciaCuadrada =
+                dragon.distanceToSqr(
+                        objetivo
+                );
+
+        double distanciaFinalCuadrada =
+                DISTANCIA_FINAL_EMBESTIDA
+                        * DISTANCIA_FINAL_EMBESTIDA;
+
+        if (distanciaCuadrada
+                <= distanciaFinalCuadrada) {
+
+            terminarEmbestida(
+                    dragon
+            );
+
+            return;
+        }
+
+        estado.ticksRestantes--;
+
+        if (estado.ticksRestantes <= 0) {
+
+            terminarEmbestida(
+                    dragon
+            );
+
+            return;
+        }
+
+        Vec3 direccion =
+                obtenerDireccionEmbestida(
+                        dragon,
+                        objetivo
+                );
+
+        dragon.setDeltaMovement(
+                direccion.scale(
+                        VELOCIDAD_EMBESTIDA
+                )
+        );
+
+        dragon.hurtMarked =
+                true;
+
+        level.sendParticles(
+                ParticleTypes.SMOKE,
+                dragon.getX(),
+                dragon.getY() + 1.5D,
+                dragon.getZ(),
+                12,
+                1.5D,
+                1.0D,
+                1.5D,
+                0.05D
+        );
+    }
+
+    private static Vec3 obtenerDireccionEmbestida(
+            EnderDragon dragon,
+            ServerPlayer objetivo
+    ) {
+
+        double diferenciaX =
+                objetivo.getX()
+                        - dragon.getX();
+
+        double diferenciaY =
+                objetivo.getEyeY()
+                        - dragon.getY();
+
+        double diferenciaZ =
+                objetivo.getZ()
+                        - dragon.getZ();
+
+        Vec3 direccion =
+                new Vec3(
+                        diferenciaX,
+                        diferenciaY,
+                        diferenciaZ
+                );
+
+        if (direccion.lengthSqr()
+                < 0.0001D) {
+
+            return new Vec3(
+                    0.0D,
+                    0.0D,
+                    0.0D
+            );
+        }
+
+        return direccion.normalize();
+    }
+
+    private static void terminarEmbestida(
+            EnderDragon dragon
+    ) {
+
+        ATAQUES_SEIS_ACTIVOS.remove(
+                dragon.getUUID()
+        );
+
+        dragon.setDeltaMovement(
+                dragon
+                        .getDeltaMovement()
+                        .scale(
+                                0.25D
+                        ));
+    }
+
+    private static final class AtaqueSeisEstado {
+
+        private final UUID objetivo;
+
+        private int ticksRestantes;
+
+        private AtaqueSeisEstado(
+                UUID objetivo,
+                int ticksRestantes
+        ) {
+
+            this.objetivo =
+                    objetivo;
+
+            this.ticksRestantes =
+                    ticksRestantes;
+        }
+    }
+
+    private static void ataqueBolasDeFuego(
+            ServerLevel level,
+            EnderDragon dragon
+    ) {
+
+        List<ServerPlayer> jugadoresValidos =
+                new ArrayList<>();
+
+        double distanciaMaximaCuadrada =
+                DISTANCIA_MAXIMA_JUGADORES
+                        * DISTANCIA_MAXIMA_JUGADORES;
+
+        for (ServerPlayer player :
+                level.players()) {
+
+            if (!player.isAlive()
+                    || player.isSpectator()) {
+
+                continue;
+            }
+
+            if (dragon.distanceToSqr(player)
+                    > distanciaMaximaCuadrada) {
+
+                continue;
+            }
+
+            jugadoresValidos.add(
+                    player
+            );
+        }
+
+        if (jugadoresValidos.isEmpty()) {
+            return;
+        }
+
+        Collections.shuffle(
+                jugadoresValidos,
+                new java.util.Random(
+                        level.getRandom().nextLong()
+                )
+        );
+
+        int cantidadObjetivos =
+                Math.min(
+                        JUGADORES_ATAQUE_5,
+                        jugadoresValidos.size()
+                );
+
+        List<UUID> objetivos =
+                new ArrayList<>();
+
+        for (int i = 0;
+             i < cantidadObjetivos;
+             i++) {
+
+            objetivos.add(
+                    jugadoresValidos
+                            .get(i)
+                            .getUUID()
+            );
+        }
+
+        BlockPos centroPortal =
+                buscarCentroPortal(
+                        level
+                );
+
+        dragon.setPos(
+                centroPortal.getX() + 0.5D,
+                centroPortal.getY()
+                        + ALTURA_SOBRE_PORTAL_ATAQUE_5,
+                centroPortal.getZ() + 0.5D
+        );
+
+        dragon.setDeltaMovement(
+                Vec3.ZERO
+        );
+
+        ATAQUES_BOLAS_ACTIVOS.put(
+                dragon.getUUID(),
+                new AtaqueBolasEstado(
+                        objetivos
+                )
+        );
+    }
+
 
     private WingedDemonAttackEvents() {
     }
