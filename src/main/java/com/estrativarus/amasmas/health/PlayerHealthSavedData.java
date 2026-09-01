@@ -12,6 +12,7 @@ import net.minecraft.world.entity.ai.attributes.AttributeInstance;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.level.saveddata.SavedData;
 import net.minecraft.world.level.saveddata.SavedDataType;
+import com.estrativarus.amasmas.day.SistemaDiasSavedData;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -26,6 +27,12 @@ public class PlayerHealthSavedData extends SavedData {
      */
     public static final int SALUD_BASE =
             20;
+
+    public static final int DIA_REDUCCION_SALUD =
+            21;
+
+    public static final int REDUCCION_SALUD_DIA_21 =
+            10;
 
     /*
      * Guardamos una bonificación total por UUID.
@@ -205,16 +212,38 @@ public class PlayerHealthSavedData extends SavedData {
 
         if (!(player.level()
                 instanceof ServerLevel level)) {
+
             return;
         }
 
         PlayerHealthSavedData datos =
-                get(level.getServer());
+                get(
+                        level.getServer()
+                );
+
+        int diaActual =
+                SistemaDiasSavedData
+                        .get(
+                                level.getServer()
+                        )
+                        .getDiaActual();
 
         double saludObjetivo =
                 SALUD_BASE
                         + datos.getBonificacionTotal(
                         player.getUUID()
+                );
+
+        if (diaActual >= DIA_REDUCCION_SALUD) {
+
+            saludObjetivo -=
+                    REDUCCION_SALUD_DIA_21;
+        }
+
+        saludObjetivo =
+                Math.max(
+                        2.0D,
+                        saludObjetivo
                 );
 
         AttributeInstance atributoSalud =
@@ -226,14 +255,14 @@ public class PlayerHealthSavedData extends SavedData {
             return;
         }
 
-        atributoSalud.setBaseValue(
-                saludObjetivo
-        );
+        if (atributoSalud.getBaseValue()
+                != saludObjetivo) {
 
-        /*
-         * Si por alguna razón la salud actual supera
-         * el nuevo máximo, la limitamos.
-         */
+            atributoSalud.setBaseValue(
+                    saludObjetivo
+            );
+        }
+
         if (player.getHealth()
                 > saludObjetivo) {
 
