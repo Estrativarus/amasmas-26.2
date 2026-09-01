@@ -29,7 +29,7 @@ public final class ModCreativeTabs {
 
                             .title(
                                     Component.translatable(
-                                            "creativetab.amasmas.amasmas_tab"
+                                            "Amasmas"
                                     )
                             )
 
@@ -56,6 +56,9 @@ public final class ModCreativeTabs {
 
                                         output.accept(
                                                 ModItems.ARCO_RESONANTITA.get()
+                                        );
+                                        output.accept(
+                                                ModItems.CHORUS_FLOWER_STEW.get()
                                         );
                                     }
                             )

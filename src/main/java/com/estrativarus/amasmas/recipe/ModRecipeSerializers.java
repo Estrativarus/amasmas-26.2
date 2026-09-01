@@ -28,6 +28,18 @@ public final class ModRecipeSerializers {
                     )
             );
 
+    public static final DeferredHolder<
+            RecipeSerializer<?>,
+            RecipeSerializer<ChorusFlowerStewRecipe>
+            > CHORUS_FLOWER_STEW =
+            SERIALIZERS.register(
+                    "chorus_flower_stew",
+                    () -> new RecipeSerializer<>(
+                            ChorusFlowerStewRecipe.CODEC,
+                            ChorusFlowerStewRecipe.STREAM_CODEC
+                    )
+            );
+
     public static void register(
             IEventBus modEventBus
     ) {
@@ -36,6 +48,7 @@ public final class ModRecipeSerializers {
                 modEventBus
         );
     }
+
 
     private ModRecipeSerializers() {
     }

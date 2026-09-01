@@ -132,7 +132,34 @@ public class ModItems {
                                             .durability(750)
                             )
             );
+    public static final FoodProperties
+            CHORUS_FLOWER_STEW_FOOD =
+            new FoodProperties.Builder()
+                    .nutrition(10)
+                    .saturationModifier(1.2F)
+                    .alwaysEdible()
+                    .build();
 
+    public static final Consumable
+            CHORUS_FLOWER_STEW_CONSUMABLE =
+            Consumables
+                    .defaultFood()
+                    .build();
+
+    public static final DeferredItem<Item>
+            CHORUS_FLOWER_STEW =
+            ITEMS.registerItem(
+                    "chorus_flower_stew",
+                    properties ->
+                            new ChorusFlowerStewItem(
+                                    properties
+                                            .stacksTo(1)
+                                            .food(
+                                                    CHORUS_FLOWER_STEW_FOOD,
+                                                    CHORUS_FLOWER_STEW_CONSUMABLE
+                                            )
+                            )
+            );
     /*
      * Conecta el registro de objetos con el bus del mod.
      */

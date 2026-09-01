@@ -34,6 +34,9 @@ public class PlayerHealthSavedData extends SavedData {
     public static final int REDUCCION_SALUD_DIA_21 =
             10;
 
+    public static final int BONIFICACION_CHORUS_FLOWER_STEW =
+            4;
+
     /*
      * Guardamos una bonificación total por UUID.
      *
@@ -51,6 +54,11 @@ public class PlayerHealthSavedData extends SavedData {
      */
     private final Map<String, Boolean>
             manzanaNetheritaConsumida;
+
+    private final Map<String, Boolean>
+            chorusFlowerStewConsumido;
+
+
 
     public static final SavedDataType<PlayerHealthSavedData> TYPE =
             new SavedDataType<>(
@@ -88,6 +96,18 @@ public class PlayerHealthSavedData extends SavedData {
                                             .forGetter(
                                                     data ->
                                                             data.manzanaNetheritaConsumida
+                                            ),
+                                    Codec.unboundedMap(
+                                                    Codec.STRING,
+                                                    Codec.BOOL
+                                            )
+                                            .optionalFieldOf(
+                                                    "chorus_flower_stew",
+                                                    Map.of()
+                                            )
+                                            .forGetter(
+                                                    data ->
+                                                            data.chorusFlowerStewConsumido
                                             )
 
                             ).apply(
@@ -100,13 +120,15 @@ public class PlayerHealthSavedData extends SavedData {
     public PlayerHealthSavedData() {
         this(
                 new HashMap<>(),
+                new HashMap<>(),
                 new HashMap<>()
         );
     }
 
     public PlayerHealthSavedData(
             Map<String, Integer> bonificaciones,
-            Map<String, Boolean> manzanas
+            Map<String, Boolean> manzanas,
+            Map<String, Boolean> chorusFlowerStew
     ) {
 
         this.bonificacionesPorJugador =
@@ -114,6 +136,9 @@ public class PlayerHealthSavedData extends SavedData {
 
         this.manzanaNetheritaConsumida =
                 new HashMap<>(manzanas);
+
+        this.chorusFlowerStewConsumido =
+                new HashMap<>(chorusFlowerStew);
     }
 
     public static PlayerHealthSavedData get(
@@ -270,5 +295,42 @@ public class PlayerHealthSavedData extends SavedData {
                     (float) saludObjetivo
             );
         }
+    }
+    public boolean tieneChorusFlowerStew(
+            UUID uuid
+    ) {
+
+        return chorusFlowerStewConsumido
+                .getOrDefault(
+                        uuid.toString(),
+                        false
+                );
+    }
+
+    public boolean concederChorusFlowerStew(
+            UUID uuid
+    ) {
+
+        if (tieneChorusFlowerStew(uuid)) {
+            return false;
+        }
+
+        String clave =
+                uuid.toString();
+
+        chorusFlowerStewConsumido.put(
+                clave,
+                true
+        );
+
+        bonificacionesPorJugador.put(
+                clave,
+                getBonificacionTotal(uuid)
+                        + BONIFICACION_CHORUS_FLOWER_STEW
+        );
+
+        setDirty();
+
+        return true;
     }
 }
