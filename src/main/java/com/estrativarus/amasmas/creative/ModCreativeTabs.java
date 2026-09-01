@@ -53,6 +53,10 @@ public final class ModCreativeTabs {
                                         output.accept(
                                                 ModItems.FRAGMENTO_RESONANTITA.get()
                                         );
+
+                                        output.accept(
+                                                ModItems.ARCO_RESONANTITA.get()
+                                        );
                                     }
                             )
 

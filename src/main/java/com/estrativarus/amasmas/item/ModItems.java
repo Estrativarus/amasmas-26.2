@@ -121,6 +121,18 @@ public class ModItems {
     public static final DeferredItem<Item>
     FRAGMENTO_RESONANTITA =
             ITEMS.registerSimpleItem("fragmento_resonantita");
+
+    public static final DeferredItem<ResonantiteBowItem>
+            ARCO_RESONANTITA =
+            ITEMS.registerItem(
+                    "arco_resonantita",
+                    properties ->
+                            new ResonantiteBowItem(
+                                    properties
+                                            .durability(750)
+                            )
+            );
+
     /*
      * Conecta el registro de objetos con el bus del mod.
      */
