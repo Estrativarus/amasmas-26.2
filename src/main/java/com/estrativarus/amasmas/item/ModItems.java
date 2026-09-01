@@ -118,7 +118,9 @@ public class ModItems {
                                             )
                             )
             );
-
+    public static final DeferredItem<Item>
+    FRAGMENTO_RESONANTITA =
+            ITEMS.registerSimpleItem("fragmento_resonantita");
     /*
      * Conecta el registro de objetos con el bus del mod.
      */

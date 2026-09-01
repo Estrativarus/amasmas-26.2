@@ -3,5 +3,6 @@
   "itemGroup.amasmas.amasmas_tab": "Amasmas",
   "enchantment.amasmas.drenaje": "Leeching",
   "enchantment.amasmas.drenaje.desc": "Killing an enemy restores a % of their HP",
-  "item.amasmas.manzana_netherita": "Netherite Apple"
+  "item.amasmas.manzana_netherita": "Netherite Apple",
+  "item.amasmas.fragmento_resonantita": "Resonantite Fragment"
 }
