@@ -86,6 +86,13 @@ public final class SkeletonClassEvents {
             return;
         }
 
+        if (FinalizerSkeletonEvents.esFinalizador(
+                skeleton
+        )) {
+
+            return;
+        }
+
         if (!esEsqueletoDeClase(skeleton)) {
             return;
         }
@@ -530,6 +537,13 @@ public final class SkeletonClassEvents {
             return;
         }
 
+        if (FinalizerSkeletonEvents.esFinalizador(
+                mob
+        )) {
+
+            return;
+        }
+
         /*
          * No repetimos la selección al cargar la entidad
          * nuevamente desde el disco.
@@ -569,6 +583,16 @@ public final class SkeletonClassEvents {
 
             if (!mob.isAlive()
                     || mob.isRemoved()) {
+
+                return;
+            }
+
+            if (FinalizerSkeletonEvents
+                    .convertirSiCorresponde(
+                            level,
+                            mob
+                    )) {
+
                 return;
             }
 

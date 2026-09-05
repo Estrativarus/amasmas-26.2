@@ -1,0 +1,12 @@
+{
+  "type": "neoforge:add_spawns",
+  "structures": "repurposed_structures:stronghold_end",
+  "spawners": [
+    {
+      "type": "minecraft:skeleton",
+      "weight": 10,
+      "minCount": 1,
+      "maxCount": 1
+    }
+  ]
+}

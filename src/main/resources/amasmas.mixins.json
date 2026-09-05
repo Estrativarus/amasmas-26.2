@@ -11,6 +11,9 @@
     "WitherBossAccessor",
     "MiniWitherBlockDestructionMixin"
   ],
+  "client": [
+    "client.BoggedFinalizerRendererMixin"
+  ],
   "injectors": {
     "defaultRequire": 1
   }

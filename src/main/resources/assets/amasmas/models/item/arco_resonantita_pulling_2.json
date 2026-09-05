@@ -1,5 +1,5 @@
 {
-  "parent": "minecraft:item/generated",
+  "parent": "amasmas:item/arco_resonantita",
   "textures": {
     "layer0": "amasmas:item/arco_resonantita_pulling_2"
   }

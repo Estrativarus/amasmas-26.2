@@ -128,8 +128,7 @@ public class ModItems {
                     "arco_resonantita",
                     properties ->
                             new ResonantiteBowItem(
-                                    properties
-                                            .durability(750)
+                                    properties.durability(750)
                             )
             );
     public static final FoodProperties
