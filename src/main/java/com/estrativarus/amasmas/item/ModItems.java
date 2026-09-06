@@ -159,6 +159,16 @@ public class ModItems {
                                             )
                             )
             );
+    public static final DeferredItem<Item>
+            SLOT_BLOQUEADO =
+            ITEMS.registerItem(
+                    "slot_bloqueado",
+                    properties ->
+                            new Item(
+                                    properties.stacksTo(1)
+                            )
+            );
+
     /*
      * Conecta el registro de objetos con el bus del mod.
      */
