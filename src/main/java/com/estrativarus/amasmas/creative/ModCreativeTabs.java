@@ -28,7 +28,7 @@ public final class ModCreativeTabs {
                     () -> CreativeModeTab.builder()
 
                             .title(
-                                    Component.translatable(
+                                    Component.literal(
                                             "Amasmas"
                                     )
                             )
@@ -62,6 +62,9 @@ public final class ModCreativeTabs {
                                         );
                                         output.accept(
                                                 ModItems.ROPAJE_GIGANTE.get()
+                                        );
+                                        output.accept(
+                                                ModItems.BOLSA_GIGANTE.get()
                                         );
                                     }
                             )

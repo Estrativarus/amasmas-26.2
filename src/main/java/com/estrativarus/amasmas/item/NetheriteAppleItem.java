@@ -83,25 +83,13 @@ public class NetheriteAppleItem extends Item {
                             ChatFormatting.RED
                     )
             );
-
-            /*
-             * Aunque ya tuviera la mejora, la manzana ya fue
-             * consumida. Más adelante podemos impedir incluso
-             * que empiece a comerla si lo prefieres.
-             */
             return resultado;
         }
 
-        /*
-         * Registramos permanentemente la mejora.
-         */
         datos.concederManzanaNetherita(
                 player.getUUID()
         );
 
-        /*
-         * Aplicamos inmediatamente la nueva vida máxima.
-         */
         PlayerHealthSavedData.aplicarSaludGuardada(
                 player
         );

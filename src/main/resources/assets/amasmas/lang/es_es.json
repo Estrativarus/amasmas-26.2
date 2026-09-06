@@ -8,5 +8,9 @@
     "item.amasmas.arco_resonantita": "Arco de Resonantita",
     "item.amasmas.chorus_flower_stew": "Estofado de Flor de Chorus",
     "item.amasmas.slot_bloqueado": "Slot bloqueado",
-    "item.amasmas.ropaje_gigante": "Ropaje de Gigante"
+    "item.amasmas.ropaje_gigante": "Ropaje de Gigante",
+    "item.amasmas.bolsa_gigante": "Bolsa de Gigante",
+    "tooltip.amasmas.bolsa_gigante.capacidad": "Espacios ocupados: %s/%s",
+    "tooltip.amasmas.bolsa_gigante.abrir": "Clic derecho para abrir",
+    "container.amasmas.bolsa_gigante": "Bolsa de Gigante"
   }

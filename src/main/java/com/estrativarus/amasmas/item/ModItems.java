@@ -16,6 +16,8 @@ import net.neoforged.neoforge.registries.DeferredRegister;
 import net.minecraft.world.food.FoodProperties;
 import net.minecraft.world.item.component.Consumable;
 import net.minecraft.world.item.component.Consumables;
+import com.estrativarus.amasmas.component.ModDataComponents;
+import net.minecraft.world.item.component.ItemContainerContents;
 
 import java.util.Map;
 
@@ -175,6 +177,22 @@ public class ModItems {
                     properties ->
                             new Item(
                                     properties.stacksTo(16)
+                            )
+            );
+    public static final DeferredItem<GiantBagItem>
+            BOLSA_GIGANTE =
+            ITEMS.registerItem(
+                    "bolsa_gigante",
+                    properties ->
+                            new GiantBagItem(
+                                    properties
+                                            .stacksTo(1)
+                                            .component(
+                                                    ModDataComponents
+                                                            .CONTENIDO_BOLSA
+                                                            .get(),
+                                                    ItemContainerContents.EMPTY
+                                            )
                             )
             );
     /*

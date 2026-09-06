@@ -8,5 +8,9 @@
   "item.amasmas.arco_resonantita": "Resonantite Bow",
   "item.amasmas.chorus_flower_stew": "Chorus Flower Stew",
   "item.amasmas.slot_bloqueado": "Locked Slot",
-  "item.amasmas.ropaje_gigante": "Giant Garment"
+  "item.amasmas.ropaje_gigante": "Giant Garment",
+  "item.amasmas.bolsa_gigante": "Giant Bag",
+  "tooltip.amasmas.bolsa_gigante.capacidad": "Occupied slots: %s/%s",
+  "tooltip.amasmas.bolsa_gigante.abrir": "Right-click to open",
+  "container.amasmas.bolsa_gigante": "Giant Bag"
 }

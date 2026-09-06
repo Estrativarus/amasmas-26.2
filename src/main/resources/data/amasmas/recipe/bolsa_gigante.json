@@ -1,0 +1,17 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "RRR",
+    "R R",
+    "RRR"
+  ],
+  "key": {
+    "R": "amasmas:ropaje_gigante"
+  },
+  "result": {
+    "id": "amasmas:bolsa_gigante",
+    "count": 1
+  },
+  "show_notification": true
+}

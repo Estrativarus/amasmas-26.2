@@ -117,7 +117,13 @@ public final class LockedInventoryEvents {
                         .get(level.getServer())
                         .getDiaActual();
 
-        if (diaActual < DIA_BLOQUEO) {
+        boolean tieneBolsa =
+                tieneBolsaGigante(
+                        player
+                );
+
+        if (diaActual < DIA_BLOQUEO
+                || tieneBolsa) {
 
             eliminarMarcadores(
                     player
@@ -148,7 +154,6 @@ public final class LockedInventoryEvents {
                 player
         );
     }
-
     private static void bloquearPrimeraFila(
             ServerPlayer player
     ) {
@@ -438,6 +443,37 @@ public final class LockedInventoryEvents {
         );
 
         inventario.setChanged();
+    }
+
+    private static boolean tieneBolsaGigante(
+            ServerPlayer player
+    ) {
+
+        Inventory inventario =
+                player.getInventory();
+
+        for (int slot = 0;
+             slot < inventario.getContainerSize();
+             slot++) {
+
+            ItemStack stack =
+                    inventario.getItem(
+                            slot
+                    );
+
+            if (stack.is(
+                    ModItems.BOLSA_GIGANTE.get()
+            )) {
+
+                return true;
+            }
+        }
+
+        return player
+                .getOffhandItem()
+                .is(
+                        ModItems.BOLSA_GIGANTE.get()
+                );
     }
 
     private static void notificarBloqueo(
