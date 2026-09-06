@@ -1,0 +1,19 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "equipment",
+  "pattern": [
+    "ESE",
+    "SBS",
+    "ESE"
+  ],
+  "key": {
+    "E": "minecraft:ender_chest",
+    "S": "minecraft:shulker_shell",
+    "B": "amasmas:bolsa_gigante"
+  },
+  "result": {
+    "id": "amasmas:bolsa_ender",
+    "count": 1
+  },
+  "show_notification": true
+}

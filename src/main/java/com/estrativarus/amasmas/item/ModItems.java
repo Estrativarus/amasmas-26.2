@@ -195,6 +195,17 @@ public class ModItems {
                                             )
                             )
             );
+    public static final DeferredItem<EnderBagItem>
+            BOLSA_ENDER =
+            ITEMS.registerItem(
+                    "bolsa_ender",
+                    properties ->
+                            new EnderBagItem(
+                                    properties
+                                            .stacksTo(1)
+                                            .fireResistant()
+                            )
+            );
     /*
      * Conecta el registro de objetos con el bus del mod.
      */

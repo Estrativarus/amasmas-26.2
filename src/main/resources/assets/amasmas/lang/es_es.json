@@ -12,5 +12,7 @@
     "item.amasmas.bolsa_gigante": "Bolsa de Gigante",
     "tooltip.amasmas.bolsa_gigante.capacidad": "Espacios ocupados: %s/%s",
     "tooltip.amasmas.bolsa_gigante.abrir": "Clic derecho para abrir",
-    "container.amasmas.bolsa_gigante": "Bolsa de Gigante"
+    "container.amasmas.bolsa_gigante": "Bolsa de Gigante",
+    "item.amasmas.bolsa_ender": "Bolsa del Ender",
+    "container.amasmas.bolsa_ender": "Cofre de Ender"
   }

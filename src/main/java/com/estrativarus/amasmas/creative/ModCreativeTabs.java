@@ -66,6 +66,10 @@ public final class ModCreativeTabs {
                                         output.accept(
                                                 ModItems.BOLSA_GIGANTE.get()
                                         );
+
+                                        output.accept(
+                                                ModItems.BOLSA_ENDER.get()
+                                        );
                                     }
                             )
 
