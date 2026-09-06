@@ -14,5 +14,6 @@
   "tooltip.amasmas.bolsa_gigante.abrir": "Right-click to open",
   "container.amasmas.bolsa_gigante": "Giant Bag",
   "item.amasmas.bolsa_ender": "Ender Bag",
-  "container.amasmas.bolsa_ender": "Ender Chest"
+  "container.amasmas.bolsa_ender": "Ender Chest",
+  "entity.amasmas.gigante": "Giant"
 }

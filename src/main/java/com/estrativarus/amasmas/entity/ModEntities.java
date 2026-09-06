@@ -10,6 +10,7 @@ import net.minecraft.world.entity.MobCategory;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.neoforge.registries.DeferredHolder;
 import net.neoforged.neoforge.registries.DeferredRegister;
+import com.estrativarus.amasmas.entity.monster.IntelligentGiant;
 
 public final class ModEntities {
 
@@ -49,6 +50,46 @@ public final class ModEntities {
                                 )
                                 .clientTrackingRange(
                                         10
+                                )
+                                .updateInterval(
+                                        3
+                                )
+                                .build(
+                                        key
+                                );
+                    }
+            );
+    public static final DeferredHolder<
+            EntityType<?>,
+            EntityType<IntelligentGiant>
+            > GIGANTE =
+            ENTITY_TYPES.register(
+                    "gigante",
+                    () -> {
+
+                        ResourceKey<EntityType<?>> key =
+                                ResourceKey.create(
+                                        Registries.ENTITY_TYPE,
+                                        Identifier.fromNamespaceAndPath(
+                                                Amasmas.MOD_ID,
+                                                "gigante"
+                                        )
+                                );
+
+                        return EntityType.Builder
+                                .of(
+                                        IntelligentGiant::new,
+                                        MobCategory.MONSTER
+                                )
+                                .sized(
+                                        3.6F,
+                                        12.0F
+                                )
+                                .eyeHeight(
+                                        10.44F
+                                )
+                                .clientTrackingRange(
+                                        16
                                 )
                                 .updateInterval(
                                         3

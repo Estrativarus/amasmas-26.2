@@ -7,6 +7,7 @@ import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.client.event.EntityRenderersEvent;
+import com.estrativarus.amasmas.client.renderer.IntelligentGiantRenderer;
 
 @EventBusSubscriber(
         modid = Amasmas.MOD_ID,
@@ -23,6 +24,7 @@ public final class ModEntityRenderers {
                 ModEntities.ESQUELETO_FINALIZADOR.get(),
                 FinalizerSkeletonRenderer::new
         );
+        event.registerEntityRenderer(ModEntities.GIGANTE.get(), IntelligentGiantRenderer::new);
     }
 
     private ModEntityRenderers() {

@@ -8,6 +8,8 @@ import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.event.entity.EntityAttributeCreationEvent;
 import net.neoforged.neoforge.event.entity.RegisterSpawnPlacementsEvent;
+import com.estrativarus.amasmas.entity.monster.IntelligentGiant;
+import com.estrativarus.amasmas.day.SistemaDiasSavedData;
 
 @EventBusSubscriber(modid = Amasmas.MOD_ID)
 public final class ModEntityEvents {
@@ -20,6 +22,12 @@ public final class ModEntityEvents {
         event.put(
                 ModEntities.ESQUELETO_FINALIZADOR.get(),
                 FinalizerSkeleton
+                        .crearAtributos()
+                        .build()
+        );
+        event.put(
+                ModEntities.GIGANTE.get(),
+                IntelligentGiant
                         .crearAtributos()
                         .build()
         );
@@ -41,6 +49,26 @@ public final class ModEntityEvents {
                         pos,
                         random
                 ) -> true,
+                RegisterSpawnPlacementsEvent.Operation.REPLACE
+        );
+        event.register(
+                ModEntities.GIGANTE.get(),
+                SpawnPlacementTypes.ON_GROUND,
+                Heightmap.Types.MOTION_BLOCKING_NO_LEAVES,
+                (
+                        entityType,
+                        level,
+                        spawnReason,
+                        pos,
+                        random
+                ) -> {
+
+                    return !level
+                            .getBlockState(
+                                    pos.below()
+                            )
+                            .isAir();
+                },
                 RegisterSpawnPlacementsEvent.Operation.REPLACE
         );
     }
