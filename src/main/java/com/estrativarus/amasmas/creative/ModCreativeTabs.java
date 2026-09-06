@@ -60,6 +60,9 @@ public final class ModCreativeTabs {
                                         output.accept(
                                                 ModItems.CHORUS_FLOWER_STEW.get()
                                         );
+                                        output.accept(
+                                                ModItems.ROPAJE_GIGANTE.get()
+                                        );
                                     }
                             )
 

@@ -168,7 +168,15 @@ public class ModItems {
                                     properties.stacksTo(1)
                             )
             );
-
+    public static final DeferredItem<Item>
+            ROPAJE_GIGANTE =
+            ITEMS.registerItem(
+                    "ropaje_gigante",
+                    properties ->
+                            new Item(
+                                    properties.stacksTo(16)
+                            )
+            );
     /*
      * Conecta el registro de objetos con el bus del mod.
      */
