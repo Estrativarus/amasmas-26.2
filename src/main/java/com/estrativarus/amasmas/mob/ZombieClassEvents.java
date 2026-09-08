@@ -109,12 +109,31 @@ public class ZombieClassEvents {
         level.getServer().execute(() ->
                 clasificarZombie(level, zombie)
         );
+
+        if (zombie
+                .getPersistentData()
+                .contains(
+                        UndeadHorseConversionEvents
+                                .TAG_JINETE_NO_CLASIFICAR
+                )) {
+
+            return;
+        }
     }
 
     private static void clasificarZombie(
             ServerLevel level,
             Mob zombie
     ) {
+        if (zombie
+                .getPersistentData()
+                .contains(
+                        UndeadHorseConversionEvents
+                                .TAG_JINETE_NO_CLASIFICAR
+                )) {
+
+            return;
+        }
 
         if (!zombie.isAlive()
                 || zombie.isRemoved()) {

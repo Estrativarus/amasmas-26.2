@@ -86,6 +86,16 @@ public final class SkeletonClassEvents {
             return;
         }
 
+        if (skeleton
+                .getPersistentData()
+                .contains(
+                        UndeadHorseConversionEvents
+                                .TAG_JINETE_NO_CLASIFICAR
+                )) {
+
+            return;
+        }
+
         if (!esEsqueletoDeClase(skeleton)) {
             return;
         }
@@ -568,6 +578,16 @@ public final class SkeletonClassEvents {
 
             if (!mob.isAlive()
                     || mob.isRemoved()) {
+
+                return;
+            }
+
+            if (mob
+                    .getPersistentData()
+                    .contains(
+                            UndeadHorseConversionEvents
+                                    .TAG_JINETE_NO_CLASIFICAR
+                    )) {
 
                 return;
             }
