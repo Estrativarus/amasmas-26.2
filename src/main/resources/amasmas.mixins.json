@@ -9,7 +9,9 @@
     "CreeperLingeringCloudMixin",
     "EndSpikeBedrockMixin",
     "WitherBossAccessor",
-    "MiniWitherBlockDestructionMixin"
+    "MiniWitherBlockDestructionMixin",
+    "MobGoalSelectorAccessor",
+    "CreeperPoweredAccessor"
   ],
   "injectors": {
     "defaultRequire": 1
