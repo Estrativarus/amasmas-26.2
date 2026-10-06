@@ -2,8 +2,11 @@ package com.estrativarus.amasmas.mob;
 
 import com.estrativarus.amasmas.Amasmas;
 import com.estrativarus.amasmas.day.SistemaDiasSavedData;
-import net.minecraft.server.MinecraftServer;
+import com.estrativarus.amasmas.entity.EntityReplacementHelper;
+import net.minecraft.core.Holder;
+import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.effect.MobEffect;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.EntitySpawnReason;
@@ -17,10 +20,22 @@ import net.neoforged.neoforge.event.tick.EntityTickEvent;
 @EventBusSubscriber(modid = Amasmas.MOD_ID)
 public final class CaveSpiderProgressionEvents {
 
-    private static final String TAG_TRANSFORMACION_PENDIENTE =
-            "amasmas_transformacion_arana_pendiente";
+    private static final int DIA_CONVERSION_ARANAS =
+            7;
 
-    private static final int DURACION_EFECTOS =
+    private static final int DIA_RESISTENCIA =
+            7;
+
+    private static final int DIA_FUERZA =
+            14;
+
+    private static final int DIA_REGENERACION =
+            21;
+
+    private static final int INTERVALO_COMPROBACION =
+            20;
+
+    private static final int DURACION_EFECTOS_TEMPORALES =
             20 * 15;
 
     private static final int AMPLIFICADOR_RESISTENCIA =
@@ -28,6 +43,9 @@ public final class CaveSpiderProgressionEvents {
 
     private static final int AMPLIFICADOR_FUERZA =
             4;
+
+    private static final int AMPLIFICADOR_REGENERACION =
+            3;
 
     @SubscribeEvent
     public static void onEntityJoin(
@@ -41,112 +59,83 @@ public final class CaveSpiderProgressionEvents {
         }
 
         if (!(event.getEntity()
-                instanceof Mob arana)) {
+                instanceof Mob mob)) {
 
             return;
         }
-
-        if (arana.getType() != EntityTypes.SPIDER
-                && arana.getType()
-                != EntityTypes.CAVE_SPIDER) {
-
-            return;
-        }
-
-        MinecraftServer server =
-                level.getServer();
 
         int diaActual =
-                SistemaDiasSavedData
-                        .get(server)
-                        .getDiaActual();
+                obtenerDiaActual(
+                        level
+                );
 
-        if (diaActual < 7) {
-            return;
-        }
+        if (mob.getType()
+                == EntityTypes.SPIDER) {
 
-        if (arana.getType()
-                == EntityTypes.CAVE_SPIDER) {
-
-            aplicarProgresion(
-                    arana,
+            procesarAranaNueva(
+                    event,
+                    level,
+                    mob,
                     diaActual
             );
 
             return;
         }
 
-        programarTransformacion(
-                level,
-                arana,
+        if (!tieneProgresionCompartida(
+                mob
+        )) {
+
+            return;
+        }
+
+        aplicarProgresion(
+                mob,
                 diaActual
         );
     }
 
-    private static void aplicarEtapaDia21(
-            Mob mob
-    ) {
-
-    }
-
-    private static void aplicarEtapaDia42(
-            Mob mob
-    ) {
-
-    }
-
-    private static void aplicarEtapaDia63(
-            Mob mob
-    ) {
-
-    }
-
     @SubscribeEvent
-    public static void onSpiderTick(
+    public static void onEntityTick(
             EntityTickEvent.Post event
     ) {
 
         if (!(event.getEntity()
-                instanceof Mob arana)) {
+                instanceof Mob mob)) {
 
             return;
         }
 
-        if (arana.getType() != EntityTypes.SPIDER
-                && arana.getType()
-                != EntityTypes.CAVE_SPIDER) {
+        if (!esEntidadControlada(
+                mob
+        )) {
 
             return;
         }
 
-        if (!(arana.level()
+        if (!(mob.level()
                 instanceof ServerLevel level)) {
 
             return;
         }
 
-        if (arana.tickCount % 20 != 0) {
+        if ((mob.tickCount + mob.getId())
+                % INTERVALO_COMPROBACION != 0) {
+
             return;
         }
-
-        MinecraftServer server =
-                level.getServer();
 
         int diaActual =
-                SistemaDiasSavedData
-                        .get(server)
-                        .getDiaActual();
+                obtenerDiaActual(
+                        level
+                );
 
-        if (diaActual < 7) {
-            return;
-        }
-
-        if (arana.getType()
+        if (mob.getType()
                 == EntityTypes.SPIDER) {
 
-            programarTransformacion(
+            convertirAranaYaCargada(
                     level,
-                    arana,
+                    mob,
                     diaActual
             );
 
@@ -154,182 +143,184 @@ public final class CaveSpiderProgressionEvents {
         }
 
         aplicarProgresion(
-                arana,
+                mob,
                 diaActual
         );
     }
 
-
-
-    private static void programarTransformacion(
+    private static void procesarAranaNueva(
+            EntityJoinLevelEvent event,
             ServerLevel level,
             Mob arana,
             int diaActual
     ) {
 
-        if (arana
-                .getPersistentData()
-                .contains(
-                        TAG_TRANSFORMACION_PENDIENTE
+        if (diaActual < DIA_CONVERSION_ARANAS) {
+            return;
+        }
+
+        if (!EntityReplacementHelper
+                .iniciarReemplazo(
+                        arana
                 )) {
 
             return;
         }
 
-        arana
-                .getPersistentData()
-                .putBoolean(
-                        TAG_TRANSFORMACION_PENDIENTE,
-                        true
+        SpiderReplacementData datos =
+                SpiderReplacementData.from(
+                        arana
                 );
 
-        double x =
-                arana.getX();
+        event.setCanceled(
+                true
+        );
 
-        double y =
-                arana.getY();
-
-        double z =
-                arana.getZ();
-
-        float rotacionHorizontal =
-                arana.getYRot();
-
-        float rotacionVertical =
-                arana.getXRot();
-
-        boolean tieneNombre =
-                arana.hasCustomName();
-
-        var nombreAnterior =
-                arana.getCustomName();
-
-        boolean nombreVisible =
-                arana.isCustomNameVisible();
-
-        boolean persistente =
-                arana.isPersistenceRequired();
-
-        level.getServer().execute(() -> {
-
-            if (!arana.isAlive()
-                    || arana.isRemoved()) {
-
-                return;
-            }
-
-            Mob aranaDeCueva =
-                    EntityTypes.CAVE_SPIDER.create(
-                            level,
-                            EntitySpawnReason.CONVERSION
-                    );
-
-            if (aranaDeCueva == null) {
-                return;
-            }
-
-            aranaDeCueva.setPos(
-                    x,
-                    y,
-                    z
-            );
-
-            aranaDeCueva.setYRot(
-                    rotacionHorizontal
-            );
-
-            aranaDeCueva.setXRot(
-                    rotacionVertical
-            );
-
-            if (tieneNombre
-                    && nombreAnterior != null) {
-
-                aranaDeCueva.setCustomName(
-                        nombreAnterior.copy()
-                );
-
-                aranaDeCueva.setCustomNameVisible(
-                        nombreVisible
-                );
-            }
-
-            if (persistente) {
-                aranaDeCueva.setPersistenceRequired();
-            }
-
-            aplicarProgresion(
-                    aranaDeCueva,
-                    diaActual
-            );
-
-            arana.discard();
-
-            level.addFreshEntity(
-                    aranaDeCueva
-            );
-        });
-    }
-
-    private static void renovarEfectoSiNecesario(
-            Mob mob,
-            net.minecraft.core.Holder<
-                    net.minecraft.world.effect.MobEffect
-                    > efecto,
-            int amplificador
-    ) {
-
-        MobEffectInstance efectoActual =
-                mob.getEffect(
-                        efecto
-                );
-
-        if (efectoActual != null
-                && efectoActual.getAmplifier()
-                == amplificador
-                && efectoActual.getDuration() > 100) {
-
-            return;
-        }
-
-        mob.addEffect(
-                new MobEffectInstance(
-                        efecto,
-                        DURACION_EFECTOS,
-                        amplificador,
-                        false,
-                        false,
-                        false
+        level.getServer().execute(() ->
+                crearAranaDeCuevaDesdeDatos(
+                        level,
+                        datos
                 )
         );
     }
 
+    private static void crearAranaDeCuevaDesdeDatos(
+            ServerLevel level,
+            SpiderReplacementData datos
+    ) {
+
+        Mob aranaDeCueva =
+                EntityTypes.CAVE_SPIDER.create(
+                        level,
+                        EntitySpawnReason.CONVERSION
+                );
+
+        if (aranaDeCueva == null) {
+            return;
+        }
+
+        datos.aplicarA(
+                aranaDeCueva
+        );
+
+        int diaActual =
+                obtenerDiaActual(
+                        level
+                );
+
+        aplicarProgresion(
+                aranaDeCueva,
+                diaActual
+        );
+
+        boolean anadida =
+                level.addFreshEntity(
+                        aranaDeCueva
+                );
+
+        if (!anadida) {
+
+            aranaDeCueva.discard();
+        }
+    }
+
+    private static void convertirAranaYaCargada(
+            ServerLevel level,
+            Mob arana,
+            int diaActual
+    ) {
+
+        if (diaActual < DIA_CONVERSION_ARANAS) {
+            return;
+        }
+
+        if (!arana.isAlive()
+                || arana.isRemoved()) {
+
+            return;
+        }
+
+        if (!EntityReplacementHelper
+                .iniciarReemplazo(
+                        arana
+                )) {
+
+            return;
+        }
+
+        Mob aranaDeCueva =
+                EntityTypes.CAVE_SPIDER.create(
+                        level,
+                        EntitySpawnReason.CONVERSION
+                );
+
+        if (aranaDeCueva == null) {
+
+            EntityReplacementHelper
+                    .cancelarReemplazo(
+                            arana
+                    );
+
+            return;
+        }
+
+        aplicarProgresion(
+                aranaDeCueva,
+                diaActual
+        );
+
+        boolean reemplazada =
+                EntityReplacementHelper.reemplazar(
+                        level,
+                        arana,
+                        aranaDeCueva
+                );
+
+        if (!reemplazada) {
+
+            EntityReplacementHelper
+                    .cancelarReemplazo(
+                            arana
+                    );
+        }
+    }
 
     public static void aplicarProgresion(
             Mob mob,
             int diaActual
     ) {
 
-        if (diaActual < 7) {
+        if (!tieneProgresionCompartida(
+                mob
+        )) {
+
             return;
         }
 
-        renovarEfectoSiNecesario(
-                mob,
-                MobEffects.RESISTANCE,
-                AMPLIFICADOR_RESISTENCIA
-        );
+        if (diaActual >= DIA_RESISTENCIA) {
 
-        renovarEfectoSiNecesario(
-                mob,
-                MobEffects.STRENGTH,
-                AMPLIFICADOR_FUERZA
-        );
+            renovarEfectoTemporalSiNecesario(
+                    mob,
+                    MobEffects.RESISTANCE,
+                    AMPLIFICADOR_RESISTENCIA
+            );
+        }
 
-        if (diaActual >= 21) {
+        if (diaActual >= DIA_FUERZA) {
 
-            aplicarEtapaDia21(
-                    mob
+            renovarEfectoTemporalSiNecesario(
+                    mob,
+                    MobEffects.STRENGTH,
+                    AMPLIFICADOR_FUERZA
+            );
+        }
+
+        if (diaActual >= DIA_REGENERACION) {
+
+            renovarEfectoPermanenteSiNecesario(
+                    mob,
+                    MobEffects.REGENERATION,
+                    AMPLIFICADOR_REGENERACION
             );
         }
 
@@ -348,6 +339,198 @@ public final class CaveSpiderProgressionEvents {
         }
     }
 
+    private static void aplicarEtapaDia42(
+            Mob mob
+    ) {
+    }
+
+    private static void aplicarEtapaDia63(
+            Mob mob
+    ) {
+    }
+
+    private static void renovarEfectoTemporalSiNecesario(
+            Mob mob,
+            Holder<MobEffect> efecto,
+            int amplificador
+    ) {
+
+        MobEffectInstance efectoActual =
+                mob.getEffect(
+                        efecto
+                );
+
+        if (efectoActual != null
+                && efectoActual.getAmplifier()
+                >= amplificador
+                && efectoActual.getDuration()
+                > 100) {
+
+            return;
+        }
+
+        mob.addEffect(
+                new MobEffectInstance(
+                        efecto,
+                        DURACION_EFECTOS_TEMPORALES,
+                        amplificador,
+                        false,
+                        false,
+                        false
+                )
+        );
+    }
+
+    private static void renovarEfectoPermanenteSiNecesario(
+            Mob mob,
+            Holder<MobEffect> efecto,
+            int amplificador
+    ) {
+
+        MobEffectInstance efectoActual =
+                mob.getEffect(
+                        efecto
+                );
+
+        if (efectoActual != null
+                && efectoActual.getAmplifier()
+                >= amplificador
+                && efectoActual.isInfiniteDuration()) {
+
+            return;
+        }
+
+        mob.addEffect(
+                new MobEffectInstance(
+                        efecto,
+                        MobEffectInstance.INFINITE_DURATION,
+                        amplificador,
+                        false,
+                        false,
+                        false
+                )
+        );
+    }
+
+    private static int obtenerDiaActual(
+            ServerLevel level
+    ) {
+
+        return SistemaDiasSavedData
+                .get(level.getServer())
+                .getDiaActual();
+    }
+
+    private static boolean esEntidadControlada(
+            Mob mob
+    ) {
+
+        return mob.getType()
+                == EntityTypes.SPIDER
+
+                || tieneProgresionCompartida(
+                mob
+        );
+    }
+
+    private static boolean tieneProgresionCompartida(
+            Mob mob
+    ) {
+
+        return mob.getType()
+                == EntityTypes.CAVE_SPIDER
+
+                || mob.getType()
+                == EntityTypes.SILVERFISH
+
+                || mob.getType()
+                == EntityTypes.ENDERMITE;
+    }
+
+    private record SpiderReplacementData(
+            double x,
+            double y,
+            double z,
+            float yRot,
+            float xRot,
+            float yHeadRot,
+            double movimientoX,
+            double movimientoY,
+            double movimientoZ,
+            boolean persistente,
+            Component nombre,
+            boolean nombreVisible
+    ) {
+
+        private static SpiderReplacementData from(
+                Mob arana
+        ) {
+
+            return new SpiderReplacementData(
+                    arana.getX(),
+                    arana.getY(),
+                    arana.getZ(),
+                    arana.getYRot(),
+                    arana.getXRot(),
+                    arana.getYHeadRot(),
+                    arana.getDeltaMovement().x,
+                    arana.getDeltaMovement().y,
+                    arana.getDeltaMovement().z,
+                    arana.isPersistenceRequired(),
+                    arana.getCustomName() == null
+                            ? null
+                            : arana
+                            .getCustomName()
+                            .copy(),
+                    arana.isCustomNameVisible()
+            );
+        }
+
+        private void aplicarA(
+                Mob aranaDeCueva
+        ) {
+
+            aranaDeCueva.setPos(
+                    x,
+                    y,
+                    z
+            );
+
+            aranaDeCueva.setYRot(
+                    yRot
+            );
+
+            aranaDeCueva.setXRot(
+                    xRot
+            );
+
+            aranaDeCueva.setYHeadRot(
+                    yHeadRot
+            );
+
+            aranaDeCueva.setDeltaMovement(
+                    movimientoX,
+                    movimientoY,
+                    movimientoZ
+            );
+
+            if (persistente) {
+
+                aranaDeCueva.setPersistenceRequired();
+            }
+
+            if (nombre != null) {
+
+                aranaDeCueva.setCustomName(
+                        nombre
+                );
+
+                aranaDeCueva.setCustomNameVisible(
+                        nombreVisible
+                );
+            }
+        }
+    }
 
     private CaveSpiderProgressionEvents() {
     }

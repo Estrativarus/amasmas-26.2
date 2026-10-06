@@ -2,6 +2,7 @@ package com.estrativarus.amasmas.mob;
 
 import com.estrativarus.amasmas.Amasmas;
 import com.estrativarus.amasmas.day.SistemaDiasSavedData;
+import com.estrativarus.amasmas.entity.EntityReplacementHelper;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.EntitySpawnReason;
@@ -26,11 +27,11 @@ public final class EndermanProgressionEvents {
     private static final int PROBABILIDAD_CREEPER =
             30;
 
+    private static final int INTERVALO_COMPROBACION =
+            100;
+
     private static final String TAG_TIRADA_CREEPER =
             "amasmas_enderman_tirada_creeper";
-
-    private static final String TAG_CONVERSION_PENDIENTE =
-            "amasmas_enderman_conversion_creeper_pendiente";
 
     @SubscribeEvent
     public static void onEndermanJoin(
@@ -56,12 +57,40 @@ public final class EndermanProgressionEvents {
         }
 
         int diaActual =
-                SistemaDiasSavedData
-                        .get(level.getServer())
-                        .getDiaActual();
+                obtenerDiaActual(
+                        level
+                );
 
-        aplicarProgresionActual(
-                level,
+        if (diaActual < DIA_INICIO) {
+            return;
+        }
+
+        if (debeIntentarConversion(
+                enderman
+        )) {
+
+            marcarTiradaRealizada(
+                    enderman
+            );
+
+            boolean debeConvertirse =
+                    realizarTiradaConversion(
+                            enderman
+                    );
+
+            if (debeConvertirse) {
+
+                procesarEndermanNuevoComoCreeper(
+                        event,
+                        level,
+                        enderman
+                );
+
+                return;
+            }
+        }
+
+        aplicarProgresionSinConversion(
                 enderman,
                 diaActual
         );
@@ -90,39 +119,221 @@ public final class EndermanProgressionEvents {
             return;
         }
 
-        if ((enderman.tickCount
-                + enderman.getId()) % 100 != 0) {
+        if ((enderman.tickCount + enderman.getId())
+                % INTERVALO_COMPROBACION != 0) {
 
             return;
         }
 
         int diaActual =
-                SistemaDiasSavedData
-                        .get(level.getServer())
-                        .getDiaActual();
-
-        aplicarProgresionActual(
-                level,
-                enderman,
-                diaActual
-        );
-    }
-
-    private static void aplicarProgresionActual(
-            ServerLevel level,
-            Mob enderman,
-            int diaActual
-    ) {
+                obtenerDiaActual(
+                        level
+                );
 
         if (diaActual < DIA_INICIO) {
             return;
         }
 
-        if (intentarConvertirEnCreeper(
-                level,
+        if (debeIntentarConversion(
                 enderman
         )) {
 
+            marcarTiradaRealizada(
+                    enderman
+            );
+
+            boolean debeConvertirse =
+                    realizarTiradaConversion(
+                            enderman
+                    );
+
+            if (debeConvertirse) {
+
+                convertirEndermanYaCargado(
+                        level,
+                        enderman
+                );
+
+                return;
+            }
+        }
+
+        aplicarProgresionSinConversion(
+                enderman,
+                diaActual
+        );
+    }
+
+    private static boolean debeIntentarConversion(
+            Mob enderman
+    ) {
+
+        return !enderman
+                .getPersistentData()
+                .contains(
+                        TAG_TIRADA_CREEPER
+                );
+    }
+
+    private static void marcarTiradaRealizada(
+            Mob enderman
+    ) {
+
+        enderman
+                .getPersistentData()
+                .putBoolean(
+                        TAG_TIRADA_CREEPER,
+                        true
+                );
+    }
+
+    private static boolean realizarTiradaConversion(
+            Mob enderman
+    ) {
+
+        return enderman
+                .getRandom()
+                .nextInt(
+                        PROBABILIDAD_CREEPER
+                )
+                == 0;
+    }
+
+    private static void procesarEndermanNuevoComoCreeper(
+            EntityJoinLevelEvent event,
+            ServerLevel level,
+            Mob enderman
+    ) {
+
+        if (!EntityReplacementHelper
+                .iniciarReemplazo(
+                        enderman
+                )) {
+
+            aplicarEtapaDia14(
+                    enderman
+            );
+
+            return;
+        }
+
+        EndermanReplacementData datos =
+                EndermanReplacementData.from(
+                        enderman
+                );
+
+        event.setCanceled(
+                true
+        );
+
+        level.getServer().execute(() ->
+                crearCreeperDesdeDatos(
+                        level,
+                        datos
+                )
+        );
+    }
+
+    private static void crearCreeperDesdeDatos(
+            ServerLevel level,
+            EndermanReplacementData datos
+    ) {
+
+        Mob creeper =
+                EntityTypes.CREEPER.create(
+                        level,
+                        EntitySpawnReason.CONVERSION
+                );
+
+        if (creeper == null) {
+            return;
+        }
+
+        datos.aplicarA(
+                creeper
+        );
+
+        boolean anadido =
+                level.addFreshEntity(
+                        creeper
+                );
+
+        if (!anadido) {
+
+            creeper.discard();
+        }
+    }
+
+    private static void convertirEndermanYaCargado(
+            ServerLevel level,
+            Mob enderman
+    ) {
+
+        if (!enderman.isAlive()
+                || enderman.isRemoved()) {
+
+            return;
+        }
+
+        if (!EntityReplacementHelper
+                .iniciarReemplazo(
+                        enderman
+                )) {
+
+            aplicarEtapaDia14(
+                    enderman
+            );
+
+            return;
+        }
+
+        Mob creeper =
+                EntityTypes.CREEPER.create(
+                        level,
+                        EntitySpawnReason.CONVERSION
+                );
+
+        if (creeper == null) {
+
+            EntityReplacementHelper
+                    .cancelarReemplazo(
+                            enderman
+                    );
+
+            return;
+        }
+
+        if (enderman.isPersistenceRequired()) {
+
+            creeper.setPersistenceRequired();
+        }
+
+        boolean reemplazado =
+                EntityReplacementHelper.reemplazar(
+                        level,
+                        enderman,
+                        creeper
+                );
+
+        if (!reemplazado) {
+
+            EntityReplacementHelper
+                    .cancelarReemplazo(
+                            enderman
+                    );
+
+            aplicarEtapaDia14(
+                    enderman
+            );
+        }
+    }
+
+    private static void aplicarProgresionSinConversion(
+            Mob enderman,
+            int diaActual
+    ) {
+
+        if (diaActual < DIA_INICIO) {
             return;
         }
 
@@ -152,170 +363,6 @@ public final class EndermanProgressionEvents {
         }
     }
 
-    private static boolean intentarConvertirEnCreeper(
-            ServerLevel level,
-            Mob enderman
-    ) {
-
-        if (enderman
-                .getPersistentData()
-                .contains(
-                        TAG_CONVERSION_PENDIENTE
-                )) {
-
-            return true;
-        }
-
-        if (enderman
-                .getPersistentData()
-                .contains(
-                        TAG_TIRADA_CREEPER
-                )) {
-
-            return false;
-        }
-
-        enderman
-                .getPersistentData()
-                .putBoolean(
-                        TAG_TIRADA_CREEPER,
-                        true
-                );
-
-        boolean debeConvertirse =
-                enderman
-                        .getRandom()
-                        .nextInt(
-                                PROBABILIDAD_CREEPER
-                        )
-                        == 0;
-
-        if (!debeConvertirse) {
-            return false;
-        }
-
-        programarConversion(
-                level,
-                enderman
-        );
-
-        return true;
-    }
-
-    private static void programarConversion(
-            ServerLevel level,
-            Mob enderman
-    ) {
-
-        enderman
-                .getPersistentData()
-                .putBoolean(
-                        TAG_CONVERSION_PENDIENTE,
-                        true
-                );
-
-        double x =
-                enderman.getX();
-
-        double y =
-                enderman.getY();
-
-        double z =
-                enderman.getZ();
-
-        float rotacionHorizontal =
-                enderman.getYRot();
-
-        float rotacionVertical =
-                enderman.getXRot();
-
-        boolean eraPersistente =
-                enderman.isPersistenceRequired();
-
-        boolean teniaNombre =
-                enderman.hasCustomName();
-
-        Component nombreAnterior =
-                enderman.getCustomName();
-
-        boolean nombreVisible =
-                enderman.isCustomNameVisible();
-
-        level.getServer().execute(() -> {
-
-            if (!enderman.isAlive()
-                    || enderman.isRemoved()) {
-
-                return;
-            }
-
-            Mob creeper =
-                    EntityTypes.CREEPER.create(
-                            level,
-                            EntitySpawnReason.CONVERSION
-                    );
-
-            if (creeper == null) {
-
-                enderman
-                        .getPersistentData()
-                        .remove(
-                                TAG_CONVERSION_PENDIENTE
-                        );
-
-                return;
-            }
-
-            creeper.setPos(
-                    x,
-                    y,
-                    z
-            );
-
-            creeper.setYRot(
-                    rotacionHorizontal
-            );
-
-            creeper.setXRot(
-                    rotacionVertical
-            );
-
-            if (teniaNombre
-                    && nombreAnterior != null) {
-
-                creeper.setCustomName(
-                        nombreAnterior.copy()
-                );
-
-                creeper.setCustomNameVisible(
-                        nombreVisible
-                );
-            }
-
-            if (eraPersistente) {
-                creeper.setPersistenceRequired();
-            }
-
-            boolean anadido =
-                    level.addFreshEntity(
-                            creeper
-                    );
-
-            if (!anadido) {
-
-                enderman
-                        .getPersistentData()
-                        .remove(
-                                TAG_CONVERSION_PENDIENTE
-                        );
-
-                return;
-            }
-
-            enderman.discard();
-        });
-    }
-
     private static void aplicarEtapaDia14(
             Mob enderman
     ) {
@@ -343,19 +390,110 @@ public final class EndermanProgressionEvents {
     private static void aplicarEtapaDia21(
             Mob enderman
     ) {
-
     }
 
     private static void aplicarEtapaDia42(
             Mob enderman
     ) {
-
     }
 
     private static void aplicarEtapaDia63(
             Mob enderman
     ) {
+    }
 
+    private static int obtenerDiaActual(
+            ServerLevel level
+    ) {
+
+        return SistemaDiasSavedData
+                .get(level.getServer())
+                .getDiaActual();
+    }
+
+    private record EndermanReplacementData(
+            double x,
+            double y,
+            double z,
+            float yRot,
+            float xRot,
+            float yHeadRot,
+            double movimientoX,
+            double movimientoY,
+            double movimientoZ,
+            boolean persistente,
+            Component nombre,
+            boolean nombreVisible
+    ) {
+
+        private static EndermanReplacementData from(
+                Mob enderman
+        ) {
+
+            return new EndermanReplacementData(
+                    enderman.getX(),
+                    enderman.getY(),
+                    enderman.getZ(),
+                    enderman.getYRot(),
+                    enderman.getXRot(),
+                    enderman.getYHeadRot(),
+                    enderman.getDeltaMovement().x,
+                    enderman.getDeltaMovement().y,
+                    enderman.getDeltaMovement().z,
+                    enderman.isPersistenceRequired(),
+                    enderman.getCustomName() == null
+                            ? null
+                            : enderman
+                            .getCustomName()
+                            .copy(),
+                    enderman.isCustomNameVisible()
+            );
+        }
+
+        private void aplicarA(
+                Mob creeper
+        ) {
+
+            creeper.setPos(
+                    x,
+                    y,
+                    z
+            );
+
+            creeper.setYRot(
+                    yRot
+            );
+
+            creeper.setXRot(
+                    xRot
+            );
+
+            creeper.setYHeadRot(
+                    yHeadRot
+            );
+
+            creeper.setDeltaMovement(
+                    movimientoX,
+                    movimientoY,
+                    movimientoZ
+            );
+
+            if (persistente) {
+
+                creeper.setPersistenceRequired();
+            }
+
+            if (nombre != null) {
+
+                creeper.setCustomName(
+                        nombre
+                );
+
+                creeper.setCustomNameVisible(
+                        nombreVisible
+                );
+            }
+        }
     }
 
     private EndermanProgressionEvents() {

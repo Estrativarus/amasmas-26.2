@@ -2,7 +2,7 @@ package com.estrativarus.amasmas.mob;
 
 import com.estrativarus.amasmas.Amasmas;
 import com.estrativarus.amasmas.day.SistemaDiasSavedData;
-import net.minecraft.network.chat.Component;
+import com.estrativarus.amasmas.entity.EntityReplacementHelper;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.EntitySpawnReason;
 import net.minecraft.world.entity.EntityTypes;
@@ -16,11 +16,11 @@ import net.neoforged.neoforge.event.tick.EntityTickEvent;
 @EventBusSubscriber(modid = Amasmas.MOD_ID)
 public final class PigToZoglinEvents {
 
-    private static final String TAG_TRANSFORMACION_PENDIENTE =
-            "amasmas_cerdo_transformacion_zoglin_pendiente";
-
     private static final int DIA_TRANSFORMACION =
             7;
+
+    private static final int INTERVALO_COMPROBACION =
+            20;
 
     @SubscribeEvent
     public static void onPigJoinLevel(
@@ -48,9 +48,34 @@ public final class PigToZoglinEvents {
             return;
         }
 
-        programarTransformacion(
-                level,
-                pig
+        if (!EntityReplacementHelper
+                .iniciarReemplazo(
+                        pig
+                )) {
+
+            return;
+        }
+
+        PigReplacementData datos =
+                PigReplacementData.from(
+                        pig
+                );
+
+        /*
+         * Impide que el cerdo entre en el mundo.
+         *
+         * Así nunca se envía al cliente y no puede
+         * quedar una representación fantasma inmóvil.
+         */
+        event.setCanceled(
+                true
+        );
+
+        level.getServer().execute(() ->
+                crearZoglinDesdeDatos(
+                        level,
+                        datos
+                )
         );
     }
 
@@ -71,7 +96,9 @@ public final class PigToZoglinEvents {
             return;
         }
 
-        if (pig.tickCount % 20 != 0) {
+        if ((pig.tickCount + pig.getId())
+                % INTERVALO_COMPROBACION != 0) {
+
             return;
         }
 
@@ -84,81 +111,144 @@ public final class PigToZoglinEvents {
             return;
         }
 
-        programarTransformacion(
-                level,
-                pig
-        );
-    }
-
-    private static void programarTransformacion(
-            ServerLevel level,
-            Pig pig
-    ) {
-
-        if (pig
-                .getPersistentData()
-                .contains(
-                        TAG_TRANSFORMACION_PENDIENTE
+        if (!EntityReplacementHelper
+                .iniciarReemplazo(
+                        pig
                 )) {
 
             return;
         }
 
-        pig
-                .getPersistentData()
-                .putBoolean(
-                        TAG_TRANSFORMACION_PENDIENTE,
-                        true
+        convertirCerdoYaCargado(
+                level,
+                pig
+        );
+    }
+
+    private static void crearZoglinDesdeDatos(
+            ServerLevel level,
+            PigReplacementData datos
+    ) {
+
+        Zoglin zoglin =
+                EntityTypes.ZOGLIN.create(
+                        level,
+                        EntitySpawnReason.CONVERSION
                 );
 
-        double x =
-                pig.getX();
+        if (zoglin == null) {
+            return;
+        }
 
-        double y =
-                pig.getY();
+        datos.applyTo(
+                zoglin
+        );
 
-        double z =
-                pig.getZ();
+        boolean anadido =
+                level.addFreshEntity(
+                        zoglin
+                );
 
-        float rotacionHorizontal =
-                pig.getYRot();
+        if (!anadido) {
 
-        float rotacionVertical =
-                pig.getXRot();
+            zoglin.discard();
+        }
+    }
 
-        boolean eraBebe =
-                pig.isBaby();
+    private static void convertirCerdoYaCargado(
+            ServerLevel level,
+            Pig pig
+    ) {
 
-        boolean eraPersistente =
-                pig.isPersistenceRequired();
+        if (!pig.isAlive()
+                || pig.isRemoved()) {
 
-        boolean teniaNombre =
-                pig.hasCustomName();
+            return;
+        }
 
-        Component nombreAnterior =
-                pig.getCustomName();
+        Zoglin zoglin =
+                EntityTypes.ZOGLIN.create(
+                        level,
+                        EntitySpawnReason.CONVERSION
+                );
 
-        boolean nombreVisible =
-                pig.isCustomNameVisible();
+        if (zoglin == null) {
 
-        level.getServer().execute(() -> {
-
-            if (!pig.isAlive()
-                    || pig.isRemoved()) {
-
-                return;
-            }
-
-            Zoglin zoglin =
-                    EntityTypes.ZOGLIN.create(
-                            level,
-                            EntitySpawnReason.CONVERSION
+            EntityReplacementHelper
+                    .cancelarReemplazo(
+                            pig
                     );
 
-            if (zoglin == null) {
-                limpiarMarcaPendiente(pig);
-                return;
-            }
+            return;
+        }
+
+        zoglin.setBaby(
+                pig.isBaby()
+        );
+
+        if (pig.isPersistenceRequired()) {
+
+            zoglin.setPersistenceRequired();
+        }
+
+        boolean reemplazado =
+                EntityReplacementHelper.reemplazar(
+                        level,
+                        pig,
+                        zoglin
+                );
+
+        if (!reemplazado) {
+
+            EntityReplacementHelper
+                    .cancelarReemplazo(
+                            pig
+                    );
+        }
+    }
+
+    private record PigReplacementData(
+            double x,
+            double y,
+            double z,
+            float yRot,
+            float xRot,
+            float yHeadRot,
+            double movimientoX,
+            double movimientoY,
+            double movimientoZ,
+            boolean bebe,
+            boolean persistente,
+            net.minecraft.network.chat.Component nombre,
+            boolean nombreVisible
+    ) {
+
+        private static PigReplacementData from(
+                Pig pig
+        ) {
+
+            return new PigReplacementData(
+                    pig.getX(),
+                    pig.getY(),
+                    pig.getZ(),
+                    pig.getYRot(),
+                    pig.getXRot(),
+                    pig.getYHeadRot(),
+                    pig.getDeltaMovement().x,
+                    pig.getDeltaMovement().y,
+                    pig.getDeltaMovement().z,
+                    pig.isBaby(),
+                    pig.isPersistenceRequired(),
+                    pig.getCustomName() == null
+                            ? null
+                            : pig.getCustomName().copy(),
+                    pig.isCustomNameVisible()
+            );
+        }
+
+        private void applyTo(
+                Zoglin zoglin
+        ) {
 
             zoglin.setPos(
                     x,
@@ -167,56 +257,43 @@ public final class PigToZoglinEvents {
             );
 
             zoglin.setYRot(
-                    rotacionHorizontal
+                    yRot
             );
 
             zoglin.setXRot(
-                    rotacionVertical
+                    xRot
+            );
+
+            zoglin.setYHeadRot(
+                    yHeadRot
+            );
+
+            zoglin.setDeltaMovement(
+                    movimientoX,
+                    movimientoY,
+                    movimientoZ
             );
 
             zoglin.setBaby(
-                    eraBebe
+                    bebe
             );
 
-            if (teniaNombre
-                    && nombreAnterior != null) {
+            if (persistente) {
+
+                zoglin.setPersistenceRequired();
+            }
+
+            if (nombre != null) {
 
                 zoglin.setCustomName(
-                        nombreAnterior.copy()
+                        nombre
                 );
 
                 zoglin.setCustomNameVisible(
                         nombreVisible
                 );
             }
-
-            if (eraPersistente) {
-                zoglin.setPersistenceRequired();
-            }
-
-            boolean anadido =
-                    level.addFreshEntity(
-                            zoglin
-                    );
-
-            if (!anadido) {
-                limpiarMarcaPendiente(pig);
-                return;
-            }
-
-            pig.discard();
-        });
-    }
-
-    private static void limpiarMarcaPendiente(
-            Pig pig
-    ) {
-
-        pig
-                .getPersistentData()
-                .remove(
-                        TAG_TRANSFORMACION_PENDIENTE
-                );
+        }
     }
 
     private PigToZoglinEvents() {
