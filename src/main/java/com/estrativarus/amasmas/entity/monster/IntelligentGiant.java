@@ -28,7 +28,7 @@ public final class IntelligentGiant
             1000.0D;
 
     private static final double VELOCIDAD =
-            0.23D;
+            1.00D;
 
     private static final double DISTANCIA_SEGUIMIENTO =
             64.0D;
