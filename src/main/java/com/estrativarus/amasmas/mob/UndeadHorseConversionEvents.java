@@ -2,8 +2,9 @@ package com.estrativarus.amasmas.mob;
 
 import com.estrativarus.amasmas.Amasmas;
 import com.estrativarus.amasmas.day.SistemaDiasSavedData;
+import com.estrativarus.amasmas.entity.EntityReplacementHelper;
+import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
-import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntitySpawnReason;
 import net.minecraft.world.entity.EntityTypes;
 import net.minecraft.world.entity.Mob;
@@ -19,9 +20,6 @@ public final class UndeadHorseConversionEvents {
     public static final String TAG_JINETE_NO_CLASIFICAR =
             "amasmas_jinete_caballo_no_clasificar";
 
-    private static final String TAG_CONVERSION_PROGRAMADA =
-            "amasmas_equino_conversion_programada";
-
     private static final int DIA_INICIO =
             21;
 
@@ -32,6 +30,10 @@ public final class UndeadHorseConversionEvents {
     public static void onHorseJoin(
             EntityJoinLevelEvent event
     ) {
+
+        if (event.isCanceled()) {
+            return;
+        }
 
         if (!(event.getLevel()
                 instanceof ServerLevel level)) {
@@ -52,7 +54,17 @@ public final class UndeadHorseConversionEvents {
             return;
         }
 
-        programarConversion(
+        int diaActual =
+                obtenerDiaActual(
+                        level
+                );
+
+        if (diaActual < DIA_INICIO) {
+            return;
+        }
+
+        procesarEquinoNuevo(
+                event,
                 level,
                 horse
         );
@@ -88,55 +100,183 @@ public final class UndeadHorseConversionEvents {
             return;
         }
 
-        intentarConvertir(
+        int diaActual =
+                obtenerDiaActual(
+                        level
+                );
+
+        if (diaActual < DIA_INICIO) {
+            return;
+        }
+
+        convertirEquinoYaCargado(
                 level,
                 horse
         );
     }
 
-    private static void programarConversion(
+    private static void procesarEquinoNuevo(
+            EntityJoinLevelEvent event,
             ServerLevel level,
             AbstractHorse horse
     ) {
 
-        if (horse
-                .getPersistentData()
-                .contains(
-                        TAG_CONVERSION_PROGRAMADA
+        if (!EntityReplacementHelper
+                .iniciarReemplazo(
+                        horse
                 )) {
 
             return;
         }
 
-        horse
-                .getPersistentData()
-                .putBoolean(
-                        TAG_CONVERSION_PROGRAMADA,
-                        true
+        HorseReplacementData datos =
+                HorseReplacementData.from(
+                        horse
                 );
 
-        level.getServer().execute(() -> {
+        boolean convertirEnEsqueleto =
+                horse
+                        .getRandom()
+                        .nextBoolean();
 
-            if (!horse.isAlive()
-                    || horse.isRemoved()) {
+        event.setCanceled(
+                true
+        );
 
-                return;
-            }
-
-            horse
-                    .getPersistentData()
-                    .remove(
-                            TAG_CONVERSION_PROGRAMADA
-                    );
-
-            intentarConvertir(
-                    level,
-                    horse
-            );
-        });
+        level.getServer().execute(() ->
+                crearMonturaDesdeDatos(
+                        level,
+                        datos,
+                        convertirEnEsqueleto
+                )
+        );
     }
 
-    private static void intentarConvertir(
+    private static void crearMonturaDesdeDatos(
+            ServerLevel level,
+            HorseReplacementData datos,
+            boolean convertirEnEsqueleto
+    ) {
+
+        Mob montura;
+        Mob jinete;
+
+        if (convertirEnEsqueleto) {
+
+            montura =
+                    EntityTypes.SKELETON_HORSE.create(
+                            level,
+                            EntitySpawnReason.CONVERSION
+                    );
+
+            jinete =
+                    EntityTypes.SKELETON.create(
+                            level,
+                            EntitySpawnReason.CONVERSION
+                    );
+
+        } else {
+
+            montura =
+                    EntityTypes.ZOMBIE_HORSE.create(
+                            level,
+                            EntitySpawnReason.CONVERSION
+                    );
+
+            jinete =
+                    EntityTypes.ZOMBIE.create(
+                            level,
+                            EntitySpawnReason.CONVERSION
+                    );
+        }
+
+        if (montura == null
+                || jinete == null) {
+
+            eliminarEntidadNueva(
+                    montura
+            );
+
+            eliminarEntidadNueva(
+                    jinete
+            );
+
+            return;
+        }
+
+        datos.aplicarAMontura(
+                montura
+        );
+
+        datos.aplicarAJinete(
+                jinete
+        );
+
+        configurarMontura(
+                montura
+        );
+
+        configurarJinete(
+                jinete
+        );
+
+        boolean monturaAnadida =
+                level.addFreshEntity(
+                        montura
+                );
+
+        if (!monturaAnadida) {
+
+            eliminarEntidadNueva(
+                    montura
+            );
+
+            eliminarEntidadNueva(
+                    jinete
+            );
+
+            return;
+        }
+
+        boolean jineteAnadido =
+                level.addFreshEntity(
+                        jinete
+                );
+
+        if (!jineteAnadido) {
+
+            EntityReplacementHelper
+                    .eliminarDefinitivamente(
+                            montura
+                    );
+
+            eliminarEntidadNueva(
+                    jinete
+            );
+
+            return;
+        }
+
+        boolean montado =
+                jinete.startRiding(
+                        montura
+                );
+
+        if (!montado) {
+
+            EntityReplacementHelper
+                    .eliminarDefinitivamente(
+                            jinete
+                    );
+
+            EntityReplacementHelper
+                    .eliminarDefinitivamente(
+                            montura
+                    );
+        }
+    }
+
+    private static void convertirEquinoYaCargado(
             ServerLevel level,
             AbstractHorse horse
     ) {
@@ -147,18 +287,10 @@ public final class UndeadHorseConversionEvents {
             return;
         }
 
-        int diaActual =
-                SistemaDiasSavedData
-                        .get(level.getServer())
-                        .getDiaActual();
-
-        if (diaActual < DIA_INICIO) {
-            return;
-        }
-
-        if (!esEquinoConvertible(
-                horse
-        )) {
+        if (!EntityReplacementHelper
+                .iniciarReemplazo(
+                        horse
+                )) {
 
             return;
         }
@@ -168,247 +300,93 @@ public final class UndeadHorseConversionEvents {
                         .getRandom()
                         .nextBoolean();
 
+        Mob montura;
+        Mob jinete;
+
         if (convertirEnEsqueleto) {
 
-            crearCaballoEsqueletoConJinete(
-                    level,
-                    horse
-            );
+            montura =
+                    EntityTypes.SKELETON_HORSE.create(
+                            level,
+                            EntitySpawnReason.CONVERSION
+                    );
+
+            jinete =
+                    EntityTypes.SKELETON.create(
+                            level,
+                            EntitySpawnReason.CONVERSION
+                    );
 
         } else {
 
-            crearCaballoZombieConJinete(
-                    level,
-                    horse
-            );
+            montura =
+                    EntityTypes.ZOMBIE_HORSE.create(
+                            level,
+                            EntitySpawnReason.CONVERSION
+                    );
+
+            jinete =
+                    EntityTypes.ZOMBIE.create(
+                            level,
+                            EntitySpawnReason.CONVERSION
+                    );
         }
-    }
-
-    private static void crearCaballoZombieConJinete(
-            ServerLevel level,
-            AbstractHorse original
-    ) {
-
-        Mob montura =
-                EntityTypes.ZOMBIE_HORSE.create(
-                        level,
-                        EntitySpawnReason.CONVERSION
-                );
-
-        Mob jinete =
-                EntityTypes.ZOMBIE.create(
-                        level,
-                        EntitySpawnReason.CONVERSION
-                );
 
         if (montura == null
                 || jinete == null) {
 
-            descartarSiExiste(
+            eliminarEntidadNueva(
                     montura
             );
 
-            descartarSiExiste(
+            eliminarEntidadNueva(
                     jinete
             );
 
+            EntityReplacementHelper
+                    .cancelarReemplazo(
+                            horse
+                    );
+
             return;
         }
 
-        prepararMontura(
-                original,
+        configurarMontura(
                 montura
         );
 
-        prepararJinete(
-                original,
+        configurarJinete(
                 jinete
         );
 
-        boolean monturaAnadida =
-                level.addFreshEntity(
-                        montura
-                );
+        boolean reemplazado =
+                EntityReplacementHelper
+                        .reemplazarConJinete(
+                                level,
+                                horse,
+                                montura,
+                                jinete
+                        );
 
-        if (!monturaAnadida) {
+        if (!reemplazado) {
 
-            montura.discard();
-            jinete.discard();
-
-            return;
+            EntityReplacementHelper
+                    .cancelarReemplazo(
+                            horse
+                    );
         }
-
-        boolean jineteAnadido =
-                level.addFreshEntity(
-                        jinete
-                );
-
-        if (!jineteAnadido) {
-
-            montura.discard();
-            jinete.discard();
-
-            return;
-        }
-
-        boolean montado =
-                jinete.startRiding(
-                        montura
-                );
-
-        if (!montado) {
-
-            montura.discard();
-            jinete.discard();
-
-            return;
-        }
-
-        eliminarOriginal(
-                original
-        );
     }
 
-    private static void crearCaballoEsqueletoConJinete(
-            ServerLevel level,
-            AbstractHorse original
-    ) {
-
-        Mob montura =
-                EntityTypes.SKELETON_HORSE.create(
-                        level,
-                        EntitySpawnReason.CONVERSION
-                );
-
-        Mob jinete =
-                EntityTypes.SKELETON.create(
-                        level,
-                        EntitySpawnReason.CONVERSION
-                );
-
-        if (montura == null
-                || jinete == null) {
-
-            descartarSiExiste(
-                    montura
-            );
-
-            descartarSiExiste(
-                    jinete
-            );
-
-            return;
-        }
-
-        prepararMontura(
-                original,
-                montura
-        );
-
-        prepararJinete(
-                original,
-                jinete
-        );
-
-        boolean monturaAnadida =
-                level.addFreshEntity(
-                        montura
-                );
-
-        if (!monturaAnadida) {
-
-            montura.discard();
-            jinete.discard();
-
-            return;
-        }
-
-        boolean jineteAnadido =
-                level.addFreshEntity(
-                        jinete
-                );
-
-        if (!jineteAnadido) {
-
-            montura.discard();
-            jinete.discard();
-
-            return;
-        }
-
-        boolean montado =
-                jinete.startRiding(
-                        montura
-                );
-
-        if (!montado) {
-
-            montura.discard();
-            jinete.discard();
-
-            return;
-        }
-
-        eliminarOriginal(
-                original
-        );
-    }
-
-    private static void prepararMontura(
-            AbstractHorse original,
+    private static void configurarMontura(
             Mob montura
     ) {
 
-        montura.setPos(
-                original.getX(),
-                original.getY(),
-                original.getZ()
-        );
-
-        montura.setYRot(
-                original.getYRot()
-        );
-
-        montura.setXRot(
-                original.getXRot()
-        );
-
-        montura.setDeltaMovement(
-                original.getDeltaMovement()
-        );
-
         montura.setPersistenceRequired();
-
-        if (original.hasCustomName()) {
-
-            montura.setCustomName(
-                    original.getCustomName()
-            );
-
-            montura.setCustomNameVisible(
-                    original.isCustomNameVisible()
-            );
-        }
     }
 
-    private static void prepararJinete(
-            AbstractHorse original,
+    private static void configurarJinete(
             Mob jinete
     ) {
-
-        jinete.setPos(
-                original.getX(),
-                original.getY() + 1.0D,
-                original.getZ()
-        );
-
-        jinete.setYRot(
-                original.getYRot()
-        );
-
-        jinete.setXRot(
-                0.0F
-        );
 
         jinete.setPersistenceRequired();
 
@@ -418,6 +396,29 @@ public final class UndeadHorseConversionEvents {
                         TAG_JINETE_NO_CLASIFICAR,
                         true
                 );
+    }
+
+    private static void eliminarEntidadNueva(
+            Mob entity
+    ) {
+
+        if (entity == null) {
+            return;
+        }
+
+        EntityReplacementHelper
+                .eliminarDefinitivamente(
+                        entity
+                );
+    }
+
+    private static int obtenerDiaActual(
+            ServerLevel level
+    ) {
+
+        return SistemaDiasSavedData
+                .get(level.getServer())
+                .getDiaActual();
     }
 
     private static boolean esEquinoConvertible(
@@ -434,21 +435,107 @@ public final class UndeadHorseConversionEvents {
                 == EntityTypes.MULE;
     }
 
-    private static void eliminarOriginal(
-            AbstractHorse original
+    private record HorseReplacementData(
+            double x,
+            double y,
+            double z,
+            float yRot,
+            float xRot,
+            float yHeadRot,
+            double movimientoX,
+            double movimientoY,
+            double movimientoZ,
+            boolean persistente,
+            Component nombre,
+            boolean nombreVisible
     ) {
 
-        original.stopRiding();
-        original.ejectPassengers();
-        original.discard();
-    }
+        private static HorseReplacementData from(
+                AbstractHorse horse
+        ) {
 
-    private static void descartarSiExiste(
-            Entity entity
-    ) {
+            return new HorseReplacementData(
+                    horse.getX(),
+                    horse.getY(),
+                    horse.getZ(),
+                    horse.getYRot(),
+                    horse.getXRot(),
+                    horse.getYHeadRot(),
+                    horse.getDeltaMovement().x,
+                    horse.getDeltaMovement().y,
+                    horse.getDeltaMovement().z,
+                    horse.isPersistenceRequired(),
+                    horse.getCustomName() == null
+                            ? null
+                            : horse
+                            .getCustomName()
+                            .copy(),
+                    horse.isCustomNameVisible()
+            );
+        }
 
-        if (entity != null) {
-            entity.discard();
+        private void aplicarAMontura(
+                Mob montura
+        ) {
+
+            montura.setPos(
+                    x,
+                    y,
+                    z
+            );
+
+            montura.setYRot(
+                    yRot
+            );
+
+            montura.setXRot(
+                    xRot
+            );
+
+            montura.setYHeadRot(
+                    yHeadRot
+            );
+
+            montura.setDeltaMovement(
+                    movimientoX,
+                    movimientoY,
+                    movimientoZ
+            );
+
+            if (persistente) {
+
+                montura.setPersistenceRequired();
+            }
+
+            if (nombre != null) {
+
+                montura.setCustomName(
+                        nombre
+                );
+
+                montura.setCustomNameVisible(
+                        nombreVisible
+                );
+            }
+        }
+
+        private void aplicarAJinete(
+                Mob jinete
+        ) {
+
+            jinete.setPos(
+                    x,
+                    y + 1.0D,
+                    z
+            );
+
+            jinete.setYRot(
+                    yRot
+            );
+
+            jinete.setXRot(
+                    0.0F
+            );
         }
     }
 

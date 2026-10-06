@@ -23,6 +23,7 @@ import net.neoforged.neoforge.event.entity.EntityJoinLevelEvent;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
 import net.neoforged.neoforge.event.tick.EntityTickEvent;
+import com.estrativarus.amasmas.entity.EntityReplacementHelper;
 
 @EventBusSubscriber(modid = Amasmas.MOD_ID)
 public final class SkeletonClassEvents {
@@ -65,6 +66,15 @@ public final class SkeletonClassEvents {
 
     private static final String TAG_MEJORA_DIA_14 =
             "amasmas_esqueleto_mejora_dia_14";
+
+    private static final int DIA_INICIO_CLASES =
+            7;
+
+    private static final String TAG_CLASE_SELECCIONADA =
+            "amasmas_esqueleto_clase_seleccionada";
+
+    private static final String TAG_SELECCION_REALIZADA =
+            "amasmas_esqueleto_seleccion_realizada";
 
     private static final int DIA_MEJORA =
             14;
@@ -502,6 +512,272 @@ public final class SkeletonClassEvents {
                         true
                 );
     }
+    private static void procesarReemplazoNuevo(
+            EntityJoinLevelEvent event,
+            ServerLevel level,
+            Mob skeleton,
+            int clase,
+            int diaActual
+    ) {
+
+        if (!EntityReplacementHelper
+                .iniciarReemplazo(
+                        skeleton
+                )) {
+
+            return;
+        }
+
+        SkeletonReplacementData datos =
+                SkeletonReplacementData.from(
+                        skeleton
+                );
+
+        event.setCanceled(
+                true
+        );
+
+        level.getServer().execute(() ->
+                crearWitherSkeletonDesdeDatos(
+                        level,
+                        datos,
+                        clase,
+                        diaActual
+                )
+        );
+    }
+
+    private static void crearWitherSkeletonDesdeDatos(
+            ServerLevel level,
+            SkeletonReplacementData datos,
+            int clase,
+            int diaActual
+    ) {
+
+        Mob witherSkeleton =
+                EntityTypes.WITHER_SKELETON.create(
+                        level,
+                        EntitySpawnReason.TRIGGERED
+                );
+
+        if (witherSkeleton == null) {
+            return;
+        }
+
+        datos.aplicarA(
+                witherSkeleton
+        );
+
+        establecerVida(
+                witherSkeleton,
+                40.0D
+        );
+
+        if (clase == 2) {
+
+            configurarClaseDos(
+                    level,
+                    witherSkeleton
+            );
+
+        } else {
+
+            configurarClaseCinco(
+                    level,
+                    witherSkeleton
+            );
+        }
+
+        if (diaActual >= DIA_MEJORA) {
+
+            aplicarMejoraDia14(
+                    level,
+                    witherSkeleton
+            );
+        }
+
+        witherSkeleton.setPersistenceRequired();
+
+        boolean anadido =
+                level.addFreshEntity(
+                        witherSkeleton
+                );
+
+        if (!anadido) {
+
+            witherSkeleton.discard();
+        }
+    }
+
+    private static boolean esEsqueletoPermitido(
+            Mob skeleton
+    ) {
+
+        return skeleton.getType()
+                == EntityTypes.SKELETON
+
+                || skeleton.getType()
+                == EntityTypes.STRAY
+
+                || skeleton.getType()
+                == EntityTypes.PARCHED;
+    }
+
+    private static boolean debeIgnorarse(
+            Mob skeleton
+    ) {
+
+        if (skeleton
+                .getPersistentData()
+                .contains(
+                        UndeadHorseConversionEvents
+                                .TAG_JINETE_NO_CLASIFICAR
+                )) {
+
+            return true;
+        }
+
+        return skeleton
+                .getPersistentData()
+                .contains(
+                        EntityReplacementHelper
+                                .TAG_REEMPLAZO_EN_CURSO
+                );
+    }
+
+    private static int obtenerOSeleccionarClase(
+            Mob skeleton
+    ) {
+
+        if (skeleton
+                .getPersistentData()
+                .contains(
+                        TAG_SELECCION_REALIZADA
+                )) {
+
+            return skeleton
+                    .getPersistentData()
+                    .getInt(
+                            TAG_CLASE_SELECCIONADA
+                    )
+                    .orElse(1);
+        }
+
+        int clase =
+                skeleton
+                        .getRandom()
+                        .nextInt(5)
+                        + 1;
+
+        skeleton
+                .getPersistentData()
+                .putInt(
+                        TAG_CLASE_SELECCIONADA,
+                        clase
+                );
+
+        skeleton
+                .getPersistentData()
+                .putBoolean(
+                        TAG_SELECCION_REALIZADA,
+                        true
+                );
+
+        return clase;
+    }
+
+    private static int obtenerDiaActual(
+            ServerLevel level
+    ) {
+
+        return SistemaDiasSavedData
+                .get(level.getServer())
+                .getDiaActual();
+    }
+
+    private static void reemplazarEsqueletoYaCargado(
+            ServerLevel level,
+            Mob skeleton,
+            int clase,
+            int diaActual
+    ) {
+
+        if (!skeleton.isAlive()
+                || skeleton.isRemoved()) {
+
+            return;
+        }
+
+        if (!EntityReplacementHelper
+                .iniciarReemplazo(
+                        skeleton
+                )) {
+
+            return;
+        }
+
+        Mob witherSkeleton =
+                EntityTypes.WITHER_SKELETON.create(
+                        level,
+                        EntitySpawnReason.TRIGGERED
+                );
+
+        if (witherSkeleton == null) {
+
+            EntityReplacementHelper
+                    .cancelarReemplazo(
+                            skeleton
+                    );
+
+            return;
+        }
+
+        establecerVida(
+                witherSkeleton,
+                40.0D
+        );
+
+        if (clase == 2) {
+
+            configurarClaseDos(
+                    level,
+                    witherSkeleton
+            );
+
+        } else {
+
+            configurarClaseCinco(
+                    level,
+                    witherSkeleton
+            );
+        }
+
+        if (diaActual >= DIA_MEJORA) {
+
+            aplicarMejoraDia14(
+                    level,
+                    witherSkeleton
+            );
+        }
+
+        witherSkeleton.setPersistenceRequired();
+
+        boolean reemplazado =
+                EntityReplacementHelper.reemplazar(
+                        level,
+                        skeleton,
+                        witherSkeleton
+                );
+
+        if (!reemplazado) {
+
+            EntityReplacementHelper
+                    .cancelarReemplazo(
+                            skeleton
+                    );
+        }
+    }
+
     /*
      * Se ejecuta cuando una entidad entra en el mundo.
      */
@@ -510,177 +786,179 @@ public final class SkeletonClassEvents {
             EntityJoinLevelEvent event
     ) {
 
-        /*
-         * Solo trabajamos en el servidor.
-         */
-        if (!(event.getLevel() instanceof ServerLevel level)) {
+        if (event.isCanceled()) {
             return;
         }
 
-        /*
-         * Solo procesamos mobs.
-         */
-        if (!(event.getEntity() instanceof Mob mob)) {
+        if (!(event.getLevel()
+                instanceof ServerLevel level)) {
+
             return;
         }
 
-        /*
-         * Solo se aplica a:
-         *
-         * - Skeleton;
-         * - Stray;
-         * - Parched.
-         */
-        boolean esEsqueletoPermitido =
-                mob.getType() == EntityTypes.SKELETON
-                        || mob.getType() == EntityTypes.STRAY
-                        || mob.getType() == EntityTypes.PARCHED;
+        if (!(event.getEntity()
+                instanceof Mob skeleton)) {
 
-        if (!esEsqueletoPermitido) {
             return;
         }
-        /*
-         * No repetimos la selección al cargar la entidad
-         * nuevamente desde el disco.
-         */
-        if (event.loadedFromDisk()) {
+
+        if (!esEsqueletoPermitido(
+                skeleton
+        )) {
+
+            return;
+        }
+
+        if (debeIgnorarse(
+                skeleton
+        )) {
+
+            return;
+        }
+
+        if (esEsqueletoDeClase(
+                skeleton
+        )) {
+
             return;
         }
 
         int diaActual =
-                SistemaDiasSavedData
-                        .get(level.getServer())
-                        .getDiaActual();
+                obtenerDiaActual(
+                        level
+                );
 
-        /*
-         * Antes del día 7 conservan su comportamiento vanilla.
-         */
-        if (diaActual < 7) {
+        if (diaActual < DIA_INICIO_CLASES) {
             return;
         }
 
-        /*
-         * Seleccionamos del 1 al 5.
-         *
-         * nextInt(5) produce 0, 1, 2, 3 o 4.
-         * Sumamos 1 para obtener 1, 2, 3, 4 o 5.
-         *
-         * Cada clase tiene exactamente un 20 %.
-         */
         int clase =
-                mob.getRandom().nextInt(5) + 1;
+                obtenerOSeleccionarClase(
+                        skeleton
+                );
 
-        /*
-         * Esperamos al siguiente ciclo del servidor para
-         * sobrescribir correctamente el equipo vanilla.
-         */
+        if (clase == 2
+                || clase == 5) {
+
+            procesarReemplazoNuevo(
+                    event,
+                    level,
+                    skeleton,
+                    clase,
+                    diaActual
+            );
+
+            return;
+        }
+
         level.getServer().execute(() -> {
 
-            if (!mob.isAlive()
-                    || mob.isRemoved()) {
+            if (!skeleton.isAlive()
+                    || skeleton.isRemoved()) {
 
                 return;
             }
 
-            if (mob
-                    .getPersistentData()
-                    .contains(
-                            UndeadHorseConversionEvents
-                                    .TAG_JINETE_NO_CLASIFICAR
-                    )) {
+            if (debeIgnorarse(
+                    skeleton
+            )) {
 
                 return;
             }
 
-            aplicarClase(
+            if (esEsqueletoDeClase(
+                    skeleton
+            )) {
+
+                return;
+            }
+
+            aplicarClaseSinReemplazo(
                     level,
-                    mob,
+                    skeleton,
                     clase,
                     diaActual
             );
         });
     }
 
-    private static void aplicarClase(
-            ServerLevel level,
-            Mob mobOriginal,
-            int clase,
-            int diaActual
+    @SubscribeEvent
+    public static void onUnclassifiedSkeletonTick(
+            EntityTickEvent.Post event
     ) {
 
-        switch (clase) {
+        if (!(event.getEntity()
+                instanceof Mob skeleton)) {
 
-            /*
-             * CLASE 1
-             *
-             * Esqueleto, Stray o Parched original.
-             * Armadura completa de diamante.
-             * Diez corazones.
-             */
-            case 1 ->
-                    configurarClaseUno(
-                            level,
-                            mobOriginal
-                    );
-
-            /*
-             * CLASE 2
-             *
-             * Se convierte físicamente en Wither Skeleton.
-             * Arco con Empuje XX.
-             * Armadura completa de cota de malla.
-             * Veinte corazones.
-             */
-            case 2 ->
-                    reemplazarPorWitherSkeleton(
-                            level,
-                            mobOriginal,
-                            2
-                    );
-
-            /*
-             * CLASE 3
-             *
-             * Conserva su especie original.
-             * Hacha de hierro con Aspecto ígneo II.
-             * Armadura completa de hierro.
-             * Diez corazones.
-             */
-            case 3 ->
-                    configurarClaseTres(
-                            level,
-                            mobOriginal
-                    );
-
-            /*
-             * CLASE 4
-             *
-             * Conserva su especie original.
-             * Ballesta con Filo XX.
-             * Armadura completa de oro.
-             * Veinte corazones.
-             */
-            case 4 ->
-                    configurarClaseCuatro(
-                            level,
-                            mobOriginal
-                    );
-
-            /*
-             * CLASE 5
-             *
-             * Se convierte físicamente en Wither Skeleton.
-             * Arco con Poder X.
-             * Armadura completa de cuero.
-             * Veinte corazones.
-             */
-            default ->
-                    reemplazarPorWitherSkeleton(
-                            level,
-                            mobOriginal,
-                            5
-                    );
+            return;
         }
+
+        if (!esEsqueletoPermitido(
+                skeleton
+        )) {
+
+            return;
+        }
+
+        if (debeIgnorarse(
+                skeleton
+        )) {
+
+            return;
+        }
+
+        if (esEsqueletoDeClase(
+                skeleton
+        )) {
+
+            return;
+        }
+
+        if (!(skeleton.level()
+                instanceof ServerLevel level)) {
+
+            return;
+        }
+
+        if ((skeleton.tickCount + skeleton.getId())
+                % 100 != 0) {
+
+            return;
+        }
+
+        int diaActual =
+                obtenerDiaActual(
+                        level
+                );
+
+        if (diaActual < DIA_INICIO_CLASES) {
+            return;
+        }
+
+        int clase =
+                obtenerOSeleccionarClase(
+                        skeleton
+                );
+
+        if (clase == 2
+                || clase == 5) {
+
+            reemplazarEsqueletoYaCargado(
+                    level,
+                    skeleton,
+                    clase,
+                    diaActual
+            );
+
+            return;
+        }
+
+        aplicarClaseSinReemplazo(
+                level,
+                skeleton,
+                clase,
+                diaActual
+        );
     }
 
     /*
@@ -834,93 +1112,45 @@ public final class SkeletonClassEvents {
     /*
      * Crea un Wither Skeleton para las clases 2 y 5.
      */
-    private static void reemplazarPorWitherSkeleton(
+    private static void aplicarClaseSinReemplazo(
             ServerLevel level,
-            Mob mobOriginal,
-            int clase
+            Mob skeleton,
+            int clase,
+            int diaActual
     ) {
 
-        /*
-         * TRIGGERED evita que esta criatura se considere
-         * una aparición natural nueva.
-         */
-        Mob witherSkeleton =
-                EntityTypes.WITHER_SKELETON.create(
-                        level,
-                        EntitySpawnReason.TRIGGERED
-                );
+        switch (clase) {
 
-        if (witherSkeleton == null) {
-            return;
+            case 1 ->
+                    configurarClaseUno(
+                            level,
+                            skeleton
+                    );
+
+            case 3 ->
+                    configurarClaseTres(
+                            level,
+                            skeleton
+                    );
+
+            case 4 ->
+                    configurarClaseCuatro(
+                            level,
+                            skeleton
+                    );
+
+            default -> {
+                return;
+            }
         }
 
-        /*
-         * Copiamos posición y rotación.
-         */
-        witherSkeleton.setPos(
-                mobOriginal.getX(),
-                mobOriginal.getY(),
-                mobOriginal.getZ()
-        );
+        if (diaActual >= DIA_MEJORA) {
 
-        witherSkeleton.setYRot(
-                mobOriginal.getYRot()
-        );
-
-        witherSkeleton.setXRot(
-                mobOriginal.getXRot()
-        );
-
-        /*
-         * Inicializamos la criatura antes de equiparla.
-         */
-        witherSkeleton.finalizeSpawn(
-                level,
-                level.getCurrentDifficultyAt(
-                        witherSkeleton.blockPosition()
-                ),
-                EntitySpawnReason.TRIGGERED,
-                null
-        );
-
-        /*
-         * Ambas clases tienen veinte corazones.
-         */
-        establecerVida(
-                witherSkeleton,
-                40.0D
-        );
-
-        if (clase == 2) {
-
-            configurarClaseDos(
+            aplicarMejoraDia14(
                     level,
-                    witherSkeleton
-            );
-
-        } else {
-
-            configurarClaseCinco(
-                    level,
-                    witherSkeleton
+                    skeleton
             );
         }
-
-        witherSkeleton.setPersistenceRequired();
-
-        /*
-         * Añadimos primero el nuevo mob.
-         */
-        level.addFreshEntity(
-                witherSkeleton
-        );
-
-        /*
-         * Después eliminamos el mob original.
-         *
-         * discard() no genera botín ni experiencia.
-         */
-        mobOriginal.discard();
     }
 
     /*
@@ -1194,6 +1424,91 @@ public final class SkeletonClassEvents {
         bloquearDropsEquipamiento(
                 witherSkeleton
         );
+    }
+
+    private record SkeletonReplacementData(
+            double x,
+            double y,
+            double z,
+            float yRot,
+            float xRot,
+            float yHeadRot,
+            double movimientoX,
+            double movimientoY,
+            double movimientoZ,
+            boolean persistente,
+            Component nombre,
+            boolean nombreVisible
+    ) {
+
+        private static SkeletonReplacementData from(
+                Mob skeleton
+        ) {
+
+            return new SkeletonReplacementData(
+                    skeleton.getX(),
+                    skeleton.getY(),
+                    skeleton.getZ(),
+                    skeleton.getYRot(),
+                    skeleton.getXRot(),
+                    skeleton.getYHeadRot(),
+                    skeleton.getDeltaMovement().x,
+                    skeleton.getDeltaMovement().y,
+                    skeleton.getDeltaMovement().z,
+                    skeleton.isPersistenceRequired(),
+                    skeleton.getCustomName() == null
+                            ? null
+                            : skeleton
+                            .getCustomName()
+                            .copy(),
+                    skeleton.isCustomNameVisible()
+            );
+        }
+
+        private void aplicarA(
+                Mob witherSkeleton
+        ) {
+
+            witherSkeleton.setPos(
+                    x,
+                    y,
+                    z
+            );
+
+            witherSkeleton.setYRot(
+                    yRot
+            );
+
+            witherSkeleton.setXRot(
+                    xRot
+            );
+
+            witherSkeleton.setYHeadRot(
+                    yHeadRot
+            );
+
+            witherSkeleton.setDeltaMovement(
+                    movimientoX,
+                    movimientoY,
+                    movimientoZ
+            );
+
+            if (persistente) {
+
+                witherSkeleton.setPersistenceRequired();
+            }
+
+            if (nombre != null) {
+
+                witherSkeleton.setCustomName(
+                        nombre
+                );
+
+                witherSkeleton.setCustomNameVisible(
+                        nombreVisible
+                );
+            }
+        }
     }
 
     private SkeletonClassEvents() {
