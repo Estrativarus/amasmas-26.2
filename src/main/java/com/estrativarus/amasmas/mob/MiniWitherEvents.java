@@ -2,9 +2,9 @@ package com.estrativarus.amasmas.mob;
 
 import com.estrativarus.amasmas.Amasmas;
 import com.estrativarus.amasmas.day.SistemaDiasSavedData;
+import com.estrativarus.amasmas.entity.EntityReplacementHelper;
+import com.estrativarus.amasmas.mixin.WitherBossAccessor;
 import net.minecraft.ChatFormatting;
-import net.minecraft.core.Holder;
-import net.minecraft.core.Registry;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
@@ -16,18 +16,19 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntitySpawnReason;
 import net.minecraft.world.entity.EntityTypes;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.ai.attributes.AttributeInstance;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.boss.wither.WitherBoss;
 import net.minecraft.world.entity.projectile.Projectile;
 import net.minecraft.world.level.levelgen.structure.Structure;
 import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.fml.ModList;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.event.entity.EntityJoinLevelEvent;
 import net.neoforged.neoforge.event.entity.living.LivingIncomingDamageEvent;
 import net.neoforged.neoforge.event.level.ExplosionEvent;
 import net.neoforged.neoforge.event.tick.EntityTickEvent;
-import net.neoforged.fml.ModList;
 
 @EventBusSubscriber(modid = Amasmas.MOD_ID)
 public final class MiniWitherEvents {
@@ -38,14 +39,14 @@ public final class MiniWitherEvents {
     private static final String TAG_TIRADA_REALIZADA =
             "amasmas_tirada_mini_wither_realizada";
 
-    private static final String TAG_TRANSFORMACION_PENDIENTE =
-            "amasmas_transformacion_mini_wither_pendiente";
-
     private static final int DIA_INICIO =
             14;
 
     private static final int PROBABILIDAD_APARICION =
             3;
+
+    private static final int INTERVALO_COMPROBACION =
+            100;
 
     private static final double VIDA_MAXIMA =
             80.0D;
@@ -81,7 +82,6 @@ public final class MiniWitherEvents {
                     )
             );
 
-
     private static final ResourceKey<Structure>
             ANCIENT_CITY_END =
             ResourceKey.create(
@@ -97,6 +97,10 @@ public final class MiniWitherEvents {
             EntityJoinLevelEvent event
     ) {
 
+        if (event.isCanceled()) {
+            return;
+        }
+
         if (!(event.getLevel()
                 instanceof ServerLevel level)) {
 
@@ -104,7 +108,7 @@ public final class MiniWitherEvents {
         }
 
         if (!(event.getEntity()
-                instanceof LivingEntity enderman)) {
+                instanceof Mob enderman)) {
 
             return;
         }
@@ -115,29 +119,107 @@ public final class MiniWitherEvents {
             return;
         }
 
-        if (event.loadedFromDisk()) {
+        int diaActual =
+                obtenerDiaActual(
+                        level
+                );
+
+        if (!puedeRealizarTirada(
+                level,
+                enderman,
+                diaActual
+        )) {
+
             return;
         }
 
-        level.getServer().execute(() -> {
+        marcarTiradaRealizada(
+                enderman
+        );
 
-            if (!enderman.isAlive()
-                    || enderman.isRemoved()) {
+        if (!superaTirada(
+                enderman
+        )) {
 
-                return;
-            }
+            return;
+        }
 
-            intentarCrearMiniWither(
-                    level,
-                    enderman
-            );
-        });
+        procesarEndermanNuevo(
+                event,
+                level,
+                enderman
+        );
     }
 
-    private static void intentarCrearMiniWither(
-            ServerLevel level,
-            LivingEntity enderman
+    @SubscribeEvent
+    public static void onEndermanTick(
+            EntityTickEvent.Post event
     ) {
+
+        if (!(event.getEntity()
+                instanceof Mob enderman)) {
+
+            return;
+        }
+
+        if (enderman.getType()
+                != EntityTypes.ENDERMAN) {
+
+            return;
+        }
+
+        if (!(enderman.level()
+                instanceof ServerLevel level)) {
+
+            return;
+        }
+
+        if ((enderman.tickCount + enderman.getId())
+                % INTERVALO_COMPROBACION != 0) {
+
+            return;
+        }
+
+        int diaActual =
+                obtenerDiaActual(
+                        level
+                );
+
+        if (!puedeRealizarTirada(
+                level,
+                enderman,
+                diaActual
+        )) {
+
+            return;
+        }
+
+        marcarTiradaRealizada(
+                enderman
+        );
+
+        if (!superaTirada(
+                enderman
+        )) {
+
+            return;
+        }
+
+        convertirEndermanYaCargado(
+                level,
+                enderman
+        );
+    }
+
+    private static boolean puedeRealizarTirada(
+            ServerLevel level,
+            Mob enderman,
+            int diaActual
+    ) {
+
+        if (diaActual < DIA_INICIO) {
+            return false;
+        }
 
         if (enderman
                 .getPersistentData()
@@ -145,23 +227,7 @@ public final class MiniWitherEvents {
                         TAG_TIRADA_REALIZADA
                 )) {
 
-            return;
-        }
-
-        enderman
-                .getPersistentData()
-                .putBoolean(
-                        TAG_TIRADA_REALIZADA,
-                        true
-                );
-
-        int diaActual =
-                SistemaDiasSavedData
-                        .get(level.getServer())
-                        .getDiaActual();
-
-        if (diaActual < DIA_INICIO) {
-            return;
+            return false;
         }
 
         if (!estaDentroDeEstructuraPermitida(
@@ -169,28 +235,162 @@ public final class MiniWitherEvents {
                 enderman
         )) {
 
-            return;
+            return false;
         }
 
-        if (enderman
+        return EntityReplacementHelper
+                .puedeSerReemplazada(
+                        enderman
+                );
+    }
+
+    private static void marcarTiradaRealizada(
+            Mob enderman
+    ) {
+
+        enderman
+                .getPersistentData()
+                .putBoolean(
+                        TAG_TIRADA_REALIZADA,
+                        true
+                );
+    }
+
+    private static boolean superaTirada(
+            Mob enderman
+    ) {
+
+        return enderman
                 .getRandom()
                 .nextInt(
                         PROBABILIDAD_APARICION
                 )
-                != 0) {
+                == 0;
+    }
+
+    private static void procesarEndermanNuevo(
+            EntityJoinLevelEvent event,
+            ServerLevel level,
+            Mob enderman
+    ) {
+
+        if (!EntityReplacementHelper
+                .iniciarReemplazo(
+                        enderman
+                )) {
 
             return;
         }
 
-        programarTransformacion(
-                level,
-                enderman
+        MiniWitherReplacementData datos =
+                MiniWitherReplacementData.from(
+                        enderman
+                );
+
+        event.setCanceled(
+                true
         );
+
+        level.getServer().execute(() ->
+                crearMiniWitherDesdeDatos(
+                        level,
+                        datos
+                )
+        );
+    }
+
+    private static void crearMiniWitherDesdeDatos(
+            ServerLevel level,
+            MiniWitherReplacementData datos
+    ) {
+
+        WitherBoss miniWither =
+                EntityTypes.WITHER.create(
+                        level,
+                        EntitySpawnReason.TRIGGERED
+                );
+
+        if (miniWither == null) {
+            return;
+        }
+
+        datos.aplicarA(
+                miniWither
+        );
+
+        configurarMiniWither(
+                miniWither
+        );
+
+        boolean anadido =
+                level.addFreshEntity(
+                        miniWither
+                );
+
+        if (!anadido) {
+
+            miniWither.discard();
+        }
+    }
+
+    private static void convertirEndermanYaCargado(
+            ServerLevel level,
+            Mob enderman
+    ) {
+
+        if (!enderman.isAlive()
+                || enderman.isRemoved()) {
+
+            return;
+        }
+
+        if (!EntityReplacementHelper
+                .iniciarReemplazo(
+                        enderman
+                )) {
+
+            return;
+        }
+
+        WitherBoss miniWither =
+                EntityTypes.WITHER.create(
+                        level,
+                        EntitySpawnReason.TRIGGERED
+                );
+
+        if (miniWither == null) {
+
+            EntityReplacementHelper
+                    .cancelarReemplazo(
+                            enderman
+                    );
+
+            return;
+        }
+
+        configurarMiniWither(
+                miniWither
+        );
+
+        boolean reemplazado =
+                EntityReplacementHelper.reemplazar(
+                        level,
+                        enderman,
+                        miniWither
+                );
+
+        if (!reemplazado) {
+
+            EntityReplacementHelper
+                    .cancelarReemplazo(
+                            enderman
+                    );
+        }
     }
 
     private static boolean estaDentroDeEstructuraPermitida(
             ServerLevel level,
-            LivingEntity enderman
+            Mob enderman
     ) {
 
         boolean dentroDeEndCity =
@@ -228,103 +428,13 @@ public final class MiniWitherEvents {
                 .isValid();
     }
 
-    private static void programarTransformacion(
-            ServerLevel level,
-            LivingEntity enderman
+    private static int obtenerDiaActual(
+            ServerLevel level
     ) {
 
-        if (enderman
-                .getPersistentData()
-                .contains(
-                        TAG_TRANSFORMACION_PENDIENTE
-                )) {
-
-            return;
-        }
-
-        enderman
-                .getPersistentData()
-                .putBoolean(
-                        TAG_TRANSFORMACION_PENDIENTE,
-                        true
-                );
-
-        double x =
-                enderman.getX();
-
-        double y =
-                enderman.getY();
-
-        double z =
-                enderman.getZ();
-
-        float yRot =
-                enderman.getYRot();
-
-        float xRot =
-                enderman.getXRot();
-
-        level.getServer().execute(() -> {
-
-            if (!enderman.isAlive()
-                    || enderman.isRemoved()) {
-
-                return;
-            }
-
-            WitherBoss miniWither =
-                    EntityTypes.WITHER.create(
-                            level,
-                            EntitySpawnReason.TRIGGERED
-                    );
-
-            if (miniWither == null) {
-
-                enderman
-                        .getPersistentData()
-                        .remove(
-                                TAG_TRANSFORMACION_PENDIENTE
-                        );
-
-                return;
-            }
-
-            miniWither.setPos(
-                    x,
-                    y,
-                    z
-            );
-
-            miniWither.setYRot(
-                    yRot
-            );
-
-            miniWither.setXRot(
-                    xRot
-            );
-
-            configurarMiniWither(
-                    miniWither
-            );
-
-            boolean anadido =
-                    level.addFreshEntity(
-                            miniWither
-                    );
-
-            if (!anadido) {
-
-                enderman
-                        .getPersistentData()
-                        .remove(
-                                TAG_TRANSFORMACION_PENDIENTE
-                        );
-
-                return;
-            }
-
-            enderman.discard();
-        });
+        return SistemaDiasSavedData
+                .get(level.getServer())
+                .getDiaActual();
     }
 
     private static void configurarMiniWither(
@@ -384,10 +494,13 @@ public final class MiniWitherEvents {
         miniWither.setInvulnerableTicks(
                 0
         );
-        ((com.estrativarus.amasmas.mixin.WitherBossAccessor)
+
+        ((WitherBossAccessor)
                 (Object) miniWither)
                 .amasmas$getBossEvent()
-                .setVisible(false);
+                .setVisible(
+                        false
+                );
     }
 
     @SubscribeEvent
@@ -401,20 +514,33 @@ public final class MiniWitherEvents {
             return;
         }
 
-        if (!esMiniWither(miniWither)) {
+        if (!esMiniWither(
+                miniWither
+        )) {
+
             return;
         }
 
-        if (miniWither.tickCount % 40 != 0) {
+        if (miniWither.tickCount
+                % 40 != 0) {
+
             return;
         }
 
-        if (miniWither.getInvulnerableTicks() > 0) {
+        if (miniWither.getInvulnerableTicks()
+                > 0) {
 
             miniWither.setInvulnerableTicks(
                     0
             );
         }
+
+        ((WitherBossAccessor)
+                (Object) miniWither)
+                .amasmas$getBossEvent()
+                .setVisible(
+                        false
+                );
     }
 
     @SubscribeEvent
@@ -437,20 +563,26 @@ public final class MiniWitherEvents {
                         entidadDirecta
                 );
 
-        if (!(propietario instanceof WitherBoss miniWither)) {
+        if (!(propietario
+                instanceof WitherBoss miniWither)) {
+
             return;
         }
 
-        if (!esMiniWither(miniWither)) {
+        if (!esMiniWither(
+                miniWither
+        )) {
+
             return;
         }
 
         LivingEntity victima =
                 event.getEntity();
 
-        event.getContainer().setNewDamage(
-                DANO_CABEZA
-        );
+        event.getContainer()
+                .setNewDamage(
+                        DANO_CABEZA
+                );
 
         victima.addEffect(
                 new MobEffectInstance(
@@ -503,9 +635,14 @@ public final class MiniWitherEvents {
 
         if (longitud < 0.001D) {
 
-            diferenciaX = 1.0D;
-            diferenciaZ = 0.0D;
-            longitud = 1.0D;
+            diferenciaX =
+                    1.0D;
+
+            diferenciaZ =
+                    0.0D;
+
+            longitud =
+                    1.0D;
         }
 
         double empujeX =
@@ -542,11 +679,16 @@ public final class MiniWitherEvents {
                         entidadDirecta
                 );
 
-        if (!(propietario instanceof WitherBoss miniWither)) {
+        if (!(propietario
+                instanceof WitherBoss miniWither)) {
+
             return;
         }
 
-        if (!esMiniWither(miniWither)) {
+        if (!esMiniWither(
+                miniWither
+        )) {
+
             return;
         }
 
@@ -605,6 +747,84 @@ public final class MiniWitherEvents {
         );
 
         return miniWither;
+    }
+
+    private record MiniWitherReplacementData(
+            double x,
+            double y,
+            double z,
+            float yRot,
+            float xRot,
+            float yHeadRot,
+            double movimientoX,
+            double movimientoY,
+            double movimientoZ,
+            Component nombre,
+            boolean nombreVisible
+    ) {
+
+        private static MiniWitherReplacementData from(
+                Mob enderman
+        ) {
+
+            return new MiniWitherReplacementData(
+                    enderman.getX(),
+                    enderman.getY(),
+                    enderman.getZ(),
+                    enderman.getYRot(),
+                    enderman.getXRot(),
+                    enderman.getYHeadRot(),
+                    enderman.getDeltaMovement().x,
+                    enderman.getDeltaMovement().y,
+                    enderman.getDeltaMovement().z,
+                    enderman.getCustomName() == null
+                            ? null
+                            : enderman
+                            .getCustomName()
+                            .copy(),
+                    enderman.isCustomNameVisible()
+            );
+        }
+
+        private void aplicarA(
+                WitherBoss miniWither
+        ) {
+
+            miniWither.setPos(
+                    x,
+                    y,
+                    z
+            );
+
+            miniWither.setYRot(
+                    yRot
+            );
+
+            miniWither.setXRot(
+                    xRot
+            );
+
+            miniWither.setYHeadRot(
+                    yHeadRot
+            );
+
+            miniWither.setDeltaMovement(
+                    movimientoX,
+                    movimientoY,
+                    movimientoZ
+            );
+
+            if (nombre != null) {
+
+                miniWither.setCustomName(
+                        nombre
+                );
+
+                miniWither.setCustomNameVisible(
+                        nombreVisible
+                );
+            }
+        }
     }
 
     private MiniWitherEvents() {

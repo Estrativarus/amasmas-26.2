@@ -2,11 +2,12 @@ package com.estrativarus.amasmas.mob;
 
 import com.estrativarus.amasmas.Amasmas;
 import com.estrativarus.amasmas.day.SistemaDiasSavedData;
-import net.minecraft.core.registries.Registries;
+import com.estrativarus.amasmas.entity.EntityReplacementHelper;
+import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 import net.minecraft.resources.ResourceKey;
+import net.minecraft.core.registries.Registries;
 import net.minecraft.server.level.ServerLevel;
-import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntitySpawnReason;
 import net.minecraft.world.entity.EntityTypes;
 import net.minecraft.world.entity.Mob;
@@ -15,6 +16,7 @@ import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.ModList;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.event.entity.EntityJoinLevelEvent;
+import net.neoforged.neoforge.event.tick.EntityTickEvent;
 
 @EventBusSubscriber(modid = Amasmas.MOD_ID)
 public final class ShadowlandsStalkerEvents {
@@ -25,17 +27,14 @@ public final class ShadowlandsStalkerEvents {
     private static final int DIA_INICIO =
             14;
 
-    /*
-     * 1 entre 8 Endermen se convierte.
-     */
     private static final int PROBABILIDAD_STALKER =
             8;
 
+    private static final int INTERVALO_COMPROBACION =
+            100;
+
     private static final String TAG_TIRADA_REALIZADA =
             "amasmas_tirada_stalker_shadowlands";
-
-    private static final String TAG_CONVERSION_PENDIENTE =
-            "amasmas_conversion_stalker_shadowlands_pendiente";
 
     private static final ResourceKey<Biome>
             SHADOWLANDS =
@@ -59,6 +58,10 @@ public final class ShadowlandsStalkerEvents {
             return;
         }
 
+        if (event.isCanceled()) {
+            return;
+        }
+
         if (!(event.getLevel()
                 instanceof ServerLevel level)) {
 
@@ -77,53 +80,113 @@ public final class ShadowlandsStalkerEvents {
             return;
         }
 
-        if (event.loadedFromDisk()) {
-            return;
-        }
-
-        level.getServer().execute(() -> {
-
-            if (!enderman.isAlive()
-                    || enderman.isRemoved()) {
-
-                return;
-            }
-
-            intentarTransformar(
-                    level,
-                    enderman
-            );
-        });
-    }
-
-    private static void intentarTransformar(
-            ServerLevel level,
-            Mob enderman
-    ) {
-
-        if (enderman
-                .getPersistentData()
-                .contains(
-                        TAG_TIRADA_REALIZADA
-                )) {
-
-            return;
-        }
-
-        enderman
-                .getPersistentData()
-                .putBoolean(
-                        TAG_TIRADA_REALIZADA,
-                        true
+        int diaActual =
+                obtenerDiaActual(
+                        level
                 );
 
+        if (!puedeRealizarTirada(
+                level,
+                enderman,
+                diaActual
+        )) {
+
+            return;
+        }
+
+        marcarTiradaRealizada(
+                enderman
+        );
+
+        if (!superaTirada(
+                enderman
+        )) {
+
+            return;
+        }
+
+        procesarEndermanNuevo(
+                event,
+                level,
+                enderman
+        );
+    }
+
+    @SubscribeEvent
+    public static void onEndermanTick(
+            EntityTickEvent.Post event
+    ) {
+
+        if (!ModList.get().isLoaded(
+                MOD_NULLSCAPE
+        )) {
+
+            return;
+        }
+
+        if (!(event.getEntity()
+                instanceof Mob enderman)) {
+
+            return;
+        }
+
+        if (enderman.getType()
+                != EntityTypes.ENDERMAN) {
+
+            return;
+        }
+
+        if (!(enderman.level()
+                instanceof ServerLevel level)) {
+
+            return;
+        }
+
+        if ((enderman.tickCount + enderman.getId())
+                % INTERVALO_COMPROBACION != 0) {
+
+            return;
+        }
+
         int diaActual =
-                SistemaDiasSavedData
-                        .get(level.getServer())
-                        .getDiaActual();
+                obtenerDiaActual(
+                        level
+                );
+
+        if (!puedeRealizarTirada(
+                level,
+                enderman,
+                diaActual
+        )) {
+
+            return;
+        }
+
+        marcarTiradaRealizada(
+                enderman
+        );
+
+        if (!superaTirada(
+                enderman
+        )) {
+
+            return;
+        }
+
+        convertirEndermanYaCargado(
+                level,
+                enderman
+        );
+    }
+
+    private static boolean puedeRealizarTirada(
+            ServerLevel level,
+            Mob enderman,
+            int diaActual
+    ) {
 
         if (diaActual < DIA_INICIO) {
-            return;
+            return false;
         }
 
         if (!level
@@ -134,136 +197,262 @@ public final class ShadowlandsStalkerEvents {
                         SHADOWLANDS
                 )) {
 
-            return;
+            return false;
         }
-
-        if (enderman
-                .getRandom()
-                .nextInt(
-                        PROBABILIDAD_STALKER
-                )
-                != 0) {
-
-            return;
-        }
-
-        programarConversion(
-                level,
-                enderman
-        );
-    }
-
-    private static void programarConversion(
-            ServerLevel level,
-            Mob enderman
-    ) {
 
         if (enderman
                 .getPersistentData()
                 .contains(
-                        TAG_CONVERSION_PENDIENTE
+                        TAG_TIRADA_REALIZADA
+                )) {
+
+            return false;
+        }
+
+        return EntityReplacementHelper
+                .puedeSerReemplazada(
+                        enderman
+                );
+    }
+
+    private static void marcarTiradaRealizada(
+            Mob enderman
+    ) {
+
+        enderman
+                .getPersistentData()
+                .putBoolean(
+                        TAG_TIRADA_REALIZADA,
+                        true
+                );
+    }
+
+    private static boolean superaTirada(
+            Mob enderman
+    ) {
+
+        return enderman
+                .getRandom()
+                .nextInt(
+                        PROBABILIDAD_STALKER
+                )
+                == 0;
+    }
+
+    private static void procesarEndermanNuevo(
+            EntityJoinLevelEvent event,
+            ServerLevel level,
+            Mob enderman
+    ) {
+
+        if (!EntityReplacementHelper
+                .iniciarReemplazo(
+                        enderman
                 )) {
 
             return;
         }
 
-        enderman
-                .getPersistentData()
-                .putBoolean(
-                        TAG_CONVERSION_PENDIENTE,
-                        true
+        StalkerReplacementData datos =
+                StalkerReplacementData.from(
+                        enderman
                 );
 
-        double x =
-                enderman.getX();
+        event.setCanceled(
+                true
+        );
 
-        double y =
-                enderman.getY();
+        level.getServer().execute(() ->
+                crearStalkerDesdeDatos(
+                        level,
+                        datos
+                )
+        );
+    }
 
-        double z =
-                enderman.getZ();
+    private static void crearStalkerDesdeDatos(
+            ServerLevel level,
+            StalkerReplacementData datos
+    ) {
 
-        float yRot =
-                enderman.getYRot();
+        Mob stalker =
+                EntityTypes.CREAKING.create(
+                        level,
+                        EntitySpawnReason.TRIGGERED
+                );
 
-        float xRot =
-                enderman.getXRot();
+        if (stalker == null) {
+            return;
+        }
 
-        level.getServer().execute(() -> {
+        datos.aplicarA(
+                stalker
+        );
 
-            if (!enderman.isAlive()
-                    || enderman.isRemoved()) {
+        StalkerEvents.configurarStalkerExterno(
+                level,
+                stalker
+        );
 
-                return;
-            }
+        boolean anadido =
+                level.addFreshEntity(
+                        stalker
+                );
 
-            Mob creaking =
-                    EntityTypes.CREAKING.create(
-                            level,
-                            EntitySpawnReason.TRIGGERED
+        if (!anadido) {
+
+            stalker.discard();
+        }
+    }
+
+    private static void convertirEndermanYaCargado(
+            ServerLevel level,
+            Mob enderman
+    ) {
+
+        if (!enderman.isAlive()
+                || enderman.isRemoved()) {
+
+            return;
+        }
+
+        if (!EntityReplacementHelper
+                .iniciarReemplazo(
+                        enderman
+                )) {
+
+            return;
+        }
+
+        Mob stalker =
+                EntityTypes.CREAKING.create(
+                        level,
+                        EntitySpawnReason.TRIGGERED
+                );
+
+        if (stalker == null) {
+
+            EntityReplacementHelper
+                    .cancelarReemplazo(
+                            enderman
                     );
 
-            if (creaking == null) {
+            return;
+        }
 
-                enderman
-                        .getPersistentData()
-                        .remove(
-                                TAG_CONVERSION_PENDIENTE
-                        );
+        StalkerEvents.configurarStalkerExterno(
+                level,
+                stalker
+        );
 
-                return;
-            }
+        boolean reemplazado =
+                EntityReplacementHelper.reemplazar(
+                        level,
+                        enderman,
+                        stalker
+                );
 
-            creaking.setPos(
+        if (!reemplazado) {
+
+            EntityReplacementHelper
+                    .cancelarReemplazo(
+                            enderman
+                    );
+        }
+    }
+
+    private static int obtenerDiaActual(
+            ServerLevel level
+    ) {
+
+        return SistemaDiasSavedData
+                .get(level.getServer())
+                .getDiaActual();
+    }
+
+    private record StalkerReplacementData(
+            double x,
+            double y,
+            double z,
+            float yRot,
+            float xRot,
+            float yHeadRot,
+            double movimientoX,
+            double movimientoY,
+            double movimientoZ,
+            boolean persistente,
+            Component nombre,
+            boolean nombreVisible
+    ) {
+
+        private static StalkerReplacementData from(
+                Mob enderman
+        ) {
+
+            return new StalkerReplacementData(
+                    enderman.getX(),
+                    enderman.getY(),
+                    enderman.getZ(),
+                    enderman.getYRot(),
+                    enderman.getXRot(),
+                    enderman.getYHeadRot(),
+                    enderman.getDeltaMovement().x,
+                    enderman.getDeltaMovement().y,
+                    enderman.getDeltaMovement().z,
+                    enderman.isPersistenceRequired(),
+                    enderman.getCustomName() == null
+                            ? null
+                            : enderman
+                            .getCustomName()
+                            .copy(),
+                    enderman.isCustomNameVisible()
+            );
+        }
+
+        private void aplicarA(
+                Mob stalker
+        ) {
+
+            stalker.setPos(
                     x,
                     y,
                     z
             );
 
-            creaking.setYRot(
+            stalker.setYRot(
                     yRot
             );
 
-            creaking.setXRot(
+            stalker.setXRot(
                     xRot
             );
 
-            creaking.setPersistenceRequired();
-
-            StalkerEvents.configurarStalkerExterno(
-                    level,
-                    creaking
+            stalker.setYHeadRot(
+                    yHeadRot
             );
 
-            boolean anadido =
-                    level.addFreshEntity(
-                            creaking
-                    );
+            stalker.setDeltaMovement(
+                    movimientoX,
+                    movimientoY,
+                    movimientoZ
+            );
 
-            if (!anadido) {
+            if (persistente) {
 
-                enderman
-                        .getPersistentData()
-                        .remove(
-                                TAG_CONVERSION_PENDIENTE
-                        );
-
-                return;
+                stalker.setPersistenceRequired();
             }
 
-            eliminarEntidadOriginal(
-                    enderman
-            );
-        });
-    }
+            if (nombre != null) {
 
-    private static void eliminarEntidadOriginal(
-            Entity entidadOriginal
-    ) {
+                stalker.setCustomName(
+                        nombre
+                );
 
-        entidadOriginal.stopRiding();
-        entidadOriginal.ejectPassengers();
-        entidadOriginal.discard();
+                stalker.setCustomNameVisible(
+                        nombreVisible
+                );
+            }
+        }
     }
 
     private ShadowlandsStalkerEvents() {

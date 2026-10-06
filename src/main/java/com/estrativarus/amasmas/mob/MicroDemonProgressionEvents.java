@@ -2,6 +2,7 @@ package com.estrativarus.amasmas.mob;
 
 import com.estrativarus.amasmas.Amasmas;
 import com.estrativarus.amasmas.day.SistemaDiasSavedData;
+import com.estrativarus.amasmas.entity.EntityReplacementHelper;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.Holder;
 import net.minecraft.core.Registry;
@@ -9,6 +10,7 @@ import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.effect.MobEffect;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.EntitySpawnReason;
@@ -30,9 +32,6 @@ public final class MicroDemonProgressionEvents {
 
     private static final int DIA_INICIO =
             14;
-
-    private static final String TAG_TRANSFORMACION_PENDIENTE =
-            "amasmas_phantom_transformacion_vex_pendiente";
 
     private static final String TAG_MICRO_DEMONIO =
             "amasmas_micro_demonio";
@@ -60,6 +59,10 @@ public final class MicroDemonProgressionEvents {
             EntityJoinLevelEvent event
     ) {
 
+        if (event.isCanceled()) {
+            return;
+        }
+
         if (!(event.getLevel()
                 instanceof ServerLevel level)) {
 
@@ -72,24 +75,28 @@ public final class MicroDemonProgressionEvents {
             return;
         }
 
-        if (mob.getType() != EntityTypes.PHANTOM
-                && mob.getType() != EntityTypes.VEX) {
+        if (mob.getType()
+                != EntityTypes.PHANTOM
+                && mob.getType()
+                != EntityTypes.VEX) {
 
             return;
         }
 
         int diaActual =
-                SistemaDiasSavedData
-                        .get(level.getServer())
-                        .getDiaActual();
+                obtenerDiaActual(
+                        level
+                );
 
         if (diaActual < DIA_INICIO) {
             return;
         }
 
-        if (mob.getType() == EntityTypes.PHANTOM) {
+        if (mob.getType()
+                == EntityTypes.PHANTOM) {
 
-            programarTransformacion(
+            procesarPhantomNuevo(
+                    event,
                     level,
                     mob
             );
@@ -115,8 +122,10 @@ public final class MicroDemonProgressionEvents {
             return;
         }
 
-        if (mob.getType() != EntityTypes.PHANTOM
-                && mob.getType() != EntityTypes.VEX) {
+        if (mob.getType()
+                != EntityTypes.PHANTOM
+                && mob.getType()
+                != EntityTypes.VEX) {
 
             return;
         }
@@ -134,19 +143,21 @@ public final class MicroDemonProgressionEvents {
         }
 
         int diaActual =
-                SistemaDiasSavedData
-                        .get(level.getServer())
-                        .getDiaActual();
+                obtenerDiaActual(
+                        level
+                );
 
         if (diaActual < DIA_INICIO) {
             return;
         }
 
-        if (mob.getType() == EntityTypes.PHANTOM) {
+        if (mob.getType()
+                == EntityTypes.PHANTOM) {
 
-            programarTransformacion(
+            convertirPhantomYaCargado(
                     level,
-                    mob
+                    mob,
+                    diaActual
             );
 
             return;
@@ -159,112 +170,134 @@ public final class MicroDemonProgressionEvents {
         );
     }
 
-    private static void programarTransformacion(
+    private static void procesarPhantomNuevo(
+            EntityJoinLevelEvent event,
             ServerLevel level,
             Mob phantom
     ) {
 
-        if (phantom
-                .getPersistentData()
-                .contains(
-                        TAG_TRANSFORMACION_PENDIENTE
+        if (!EntityReplacementHelper
+                .iniciarReemplazo(
+                        phantom
                 )) {
 
             return;
         }
 
-        phantom
-                .getPersistentData()
-                .putBoolean(
-                        TAG_TRANSFORMACION_PENDIENTE,
-                        true
+        PhantomReplacementData datos =
+                PhantomReplacementData.from(
+                        phantom
                 );
 
-        double x =
-                phantom.getX();
+        event.setCanceled(
+                true
+        );
 
-        double y =
-                phantom.getY();
+        level.getServer().execute(() ->
+                crearMicroDemonioDesdeDatos(
+                        level,
+                        datos
+                )
+        );
+    }
 
-        double z =
-                phantom.getZ();
+    private static void crearMicroDemonioDesdeDatos(
+            ServerLevel level,
+            PhantomReplacementData datos
+    ) {
 
-        float rotacionHorizontal =
-                phantom.getYRot();
+        Mob vex =
+                EntityTypes.VEX.create(
+                        level,
+                        EntitySpawnReason.CONVERSION
+                );
 
-        float rotacionVertical =
-                phantom.getXRot();
+        if (vex == null) {
+            return;
+        }
 
-        boolean eraPersistente =
-                phantom.isPersistenceRequired();
+        datos.aplicarA(
+                vex
+        );
 
-        level.getServer().execute(() -> {
+        int diaActual =
+                obtenerDiaActual(
+                        level
+                );
 
-            if (!phantom.isAlive()
-                    || phantom.isRemoved()) {
+        convertirEnMicroDemonio(
+                level,
+                vex,
+                diaActual
+        );
 
-                return;
-            }
+        boolean anadido =
+                level.addFreshEntity(
+                        vex
+                );
 
-            Mob vex =
-                    EntityTypes.VEX.create(
-                            level,
-                            EntitySpawnReason.CONVERSION
+        if (!anadido) {
+
+            vex.discard();
+        }
+    }
+
+    private static void convertirPhantomYaCargado(
+            ServerLevel level,
+            Mob phantom,
+            int diaActual
+    ) {
+
+        if (!phantom.isAlive()
+                || phantom.isRemoved()) {
+
+            return;
+        }
+
+        if (!EntityReplacementHelper
+                .iniciarReemplazo(
+                        phantom
+                )) {
+
+            return;
+        }
+
+        Mob vex =
+                EntityTypes.VEX.create(
+                        level,
+                        EntitySpawnReason.CONVERSION
+                );
+
+        if (vex == null) {
+
+            EntityReplacementHelper
+                    .cancelarReemplazo(
+                            phantom
                     );
 
-            if (vex == null) {
+            return;
+        }
 
-                phantom
-                        .getPersistentData()
-                        .remove(
-                                TAG_TRANSFORMACION_PENDIENTE
-                        );
+        convertirEnMicroDemonio(
+                level,
+                vex,
+                diaActual
+        );
 
-                return;
-            }
+        boolean reemplazado =
+                EntityReplacementHelper.reemplazar(
+                        level,
+                        phantom,
+                        vex
+                );
 
-            vex.setPos(
-                    x,
-                    y,
-                    z
-            );
+        if (!reemplazado) {
 
-            vex.setYRot(
-                    rotacionHorizontal
-            );
-
-            vex.setXRot(
-                    rotacionVertical
-            );
-
-            if (eraPersistente) {
-                vex.setPersistenceRequired();
-            }
-
-            convertirEnMicroDemonio(
-                    level,
-                    vex,
-                    DIA_INICIO
-            );
-
-            boolean anadido =
-                    level.addFreshEntity(
-                            vex
+            EntityReplacementHelper
+                    .cancelarReemplazo(
+                            phantom
                     );
-
-            if (!anadido) {
-
-                phantom
-                        .getPersistentData()
-                        .remove(
-                                TAG_TRANSFORMACION_PENDIENTE
-                        );
-
-                return;
-            }
-
-            phantom.discard();
-        });
+        }
     }
 
     private static void convertirEnMicroDemonio(
@@ -272,6 +305,12 @@ public final class MicroDemonProgressionEvents {
             Mob vex,
             int diaActual
     ) {
+
+        if (vex.getType()
+                != EntityTypes.VEX) {
+
+            return;
+        }
 
         vex
                 .getPersistentData()
@@ -331,7 +370,11 @@ public final class MicroDemonProgressionEvents {
                 )
         );
 
-        vex.setCustomNameVisible(false);
+        vex.setCustomNameVisible(
+                false
+        );
+
+        vex.setPersistenceRequired();
     }
 
     private static void aplicarEquipoDia14(
@@ -397,7 +440,7 @@ public final class MicroDemonProgressionEvents {
 
     private static void renovarEfectoSiNecesario(
             Mob vex,
-            Holder<net.minecraft.world.effect.MobEffect> efecto,
+            Holder<MobEffect> efecto,
             int amplificador
     ) {
 
@@ -408,8 +451,9 @@ public final class MicroDemonProgressionEvents {
 
         if (efectoActual != null
                 && efectoActual.getAmplifier()
-                == amplificador
-                && efectoActual.getDuration() > 80) {
+                >= amplificador
+                && efectoActual.getDuration()
+                > 80) {
 
             return;
         }
@@ -459,33 +503,126 @@ public final class MicroDemonProgressionEvents {
             ServerLevel level,
             Mob vex
     ) {
-
     }
 
     private static void aplicarEtapaDia42(
             ServerLevel level,
             Mob vex
     ) {
-
     }
 
     private static void aplicarEtapaDia63(
             ServerLevel level,
             Mob vex
     ) {
+    }
 
+    private static int obtenerDiaActual(
+            ServerLevel level
+    ) {
+
+        return SistemaDiasSavedData
+                .get(level.getServer())
+                .getDiaActual();
     }
 
     public static boolean esMicroDemonio(
             Mob mob
     ) {
 
-        return mob.getType() == EntityTypes.VEX
+        return mob.getType()
+                == EntityTypes.VEX
+
                 && mob
                 .getPersistentData()
                 .contains(
                         TAG_MICRO_DEMONIO
                 );
+    }
+
+    private record PhantomReplacementData(
+            double x,
+            double y,
+            double z,
+            float yRot,
+            float xRot,
+            float yHeadRot,
+            double movimientoX,
+            double movimientoY,
+            double movimientoZ,
+            boolean persistente,
+            Component nombre,
+            boolean nombreVisible
+    ) {
+
+        private static PhantomReplacementData from(
+                Mob phantom
+        ) {
+
+            return new PhantomReplacementData(
+                    phantom.getX(),
+                    phantom.getY(),
+                    phantom.getZ(),
+                    phantom.getYRot(),
+                    phantom.getXRot(),
+                    phantom.getYHeadRot(),
+                    phantom.getDeltaMovement().x,
+                    phantom.getDeltaMovement().y,
+                    phantom.getDeltaMovement().z,
+                    phantom.isPersistenceRequired(),
+                    phantom.getCustomName() == null
+                            ? null
+                            : phantom
+                            .getCustomName()
+                            .copy(),
+                    phantom.isCustomNameVisible()
+            );
+        }
+
+        private void aplicarA(
+                Mob vex
+        ) {
+
+            vex.setPos(
+                    x,
+                    y,
+                    z
+            );
+
+            vex.setYRot(
+                    yRot
+            );
+
+            vex.setXRot(
+                    xRot
+            );
+
+            vex.setYHeadRot(
+                    yHeadRot
+            );
+
+            vex.setDeltaMovement(
+                    movimientoX,
+                    movimientoY,
+                    movimientoZ
+            );
+
+            if (persistente) {
+
+                vex.setPersistenceRequired();
+            }
+
+            if (nombre != null) {
+
+                vex.setCustomName(
+                        nombre
+                );
+
+                vex.setCustomNameVisible(
+                        nombreVisible
+                );
+            }
+        }
     }
 
     private MicroDemonProgressionEvents() {
