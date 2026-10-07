@@ -42,8 +42,16 @@ public final class Day21ZombifiedPiglinArmorEvents {
             return;
         }
 
-        if (piglin.getType()
-                != EntityTypes.ZOMBIFIED_PIGLIN) {
+        if (!esPiglinZombificado(
+                piglin
+        )) {
+
+            return;
+        }
+
+        if (esCapitan(
+                piglin
+        )) {
 
             return;
         }
@@ -74,8 +82,9 @@ public final class Day21ZombifiedPiglinArmorEvents {
             return;
         }
 
-        if (piglin.getType()
-                != EntityTypes.ZOMBIFIED_PIGLIN) {
+        if (!esPiglinZombificado(
+                piglin
+        )) {
 
             return;
         }
@@ -103,11 +112,22 @@ public final class Day21ZombifiedPiglinArmorEvents {
             Mob piglin
     ) {
 
-        if (piglin
-                .getPersistentData()
-                .contains(
-                        TAG_ARMADURA_DIA_21
-                )) {
+        if (!piglin.isAlive()
+                || piglin.isRemoved()) {
+
+            return;
+        }
+
+        if (!esPiglinZombificado(
+                piglin
+        )) {
+
+            return;
+        }
+
+        if (esCapitan(
+                piglin
+        )) {
 
             return;
         }
@@ -118,6 +138,19 @@ public final class Day21ZombifiedPiglinArmorEvents {
                         .getDiaActual();
 
         if (diaActual < DIA_INICIO) {
+            return;
+        }
+
+        if (piglin
+                .getPersistentData()
+                .contains(
+                        TAG_ARMADURA_DIA_21
+                )) {
+
+            asegurarArmaduraDiamante(
+                    piglin
+            );
+
             return;
         }
 
@@ -164,6 +197,93 @@ public final class Day21ZombifiedPiglinArmorEvents {
                         Items.DIAMOND_BOOTS
                 )
         );
+    }
+
+    private static void asegurarArmaduraDiamante(
+            Mob piglin
+    ) {
+
+        if (!piglin
+                .getItemBySlot(
+                        EquipmentSlot.HEAD
+                )
+                .is(
+                        Items.DIAMOND_HELMET
+                )) {
+
+            piglin.setItemSlot(
+                    EquipmentSlot.HEAD,
+                    new ItemStack(
+                            Items.DIAMOND_HELMET
+                    )
+            );
+        }
+
+        if (!piglin
+                .getItemBySlot(
+                        EquipmentSlot.CHEST
+                )
+                .is(
+                        Items.DIAMOND_CHESTPLATE
+                )) {
+
+            piglin.setItemSlot(
+                    EquipmentSlot.CHEST,
+                    new ItemStack(
+                            Items.DIAMOND_CHESTPLATE
+                    )
+            );
+        }
+
+        if (!piglin
+                .getItemBySlot(
+                        EquipmentSlot.LEGS
+                )
+                .is(
+                        Items.DIAMOND_LEGGINGS
+                )) {
+
+            piglin.setItemSlot(
+                    EquipmentSlot.LEGS,
+                    new ItemStack(
+                            Items.DIAMOND_LEGGINGS
+                    )
+            );
+        }
+
+        if (!piglin
+                .getItemBySlot(
+                        EquipmentSlot.FEET
+                )
+                .is(
+                        Items.DIAMOND_BOOTS
+                )) {
+
+            piglin.setItemSlot(
+                    EquipmentSlot.FEET,
+                    new ItemStack(
+                            Items.DIAMOND_BOOTS
+                    )
+            );
+        }
+    }
+
+    private static boolean esPiglinZombificado(
+            Mob piglin
+    ) {
+
+        return piglin.getType()
+                == EntityTypes.ZOMBIFIED_PIGLIN;
+    }
+
+    private static boolean esCapitan(
+            Mob piglin
+    ) {
+
+        return ZombifiedPiglinCaptainEvents
+                .esCapitan(
+                        piglin
+                );
     }
 
     private Day21ZombifiedPiglinArmorEvents() {
