@@ -6,6 +6,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
@@ -68,6 +69,7 @@ public final class ChorusFlowerStewItem
             );
 
             return devolverCuenco(
+                    serverLevel,
                     player,
                     resultado
             );
@@ -92,12 +94,14 @@ public final class ChorusFlowerStewItem
         );
 
         return devolverCuenco(
+                serverLevel,
                 player,
                 resultado
         );
     }
 
     private static ItemStack devolverCuenco(
+            ServerLevel level,
             ServerPlayer player,
             ItemStack resultado
     ) {
@@ -113,14 +117,59 @@ public final class ChorusFlowerStewItem
 
         if (!player
                 .getInventory()
-                .add(cuenco)) {
+                .add(
+                        cuenco
+                )) {
 
-            player.drop(
-                    cuenco,
-                    false
+            soltarJuntoAlJugador(
+                    level,
+                    player,
+                    cuenco
             );
         }
 
         return resultado;
+    }
+
+    private static void soltarJuntoAlJugador(
+            ServerLevel level,
+            ServerPlayer player,
+            ItemStack stack
+    ) {
+
+        if (stack.isEmpty()) {
+            return;
+        }
+
+        ItemEntity itemEntity =
+                new ItemEntity(
+                        level,
+                        player.getX(),
+                        player.getY() + 0.5D,
+                        player.getZ(),
+                        stack.copy()
+                );
+
+        itemEntity.setDefaultPickUpDelay();
+
+        double movimientoX =
+                level.getRandom()
+                        .nextGaussian()
+                        * 0.05D;
+
+        double movimientoZ =
+                level.getRandom()
+                        .nextGaussian()
+                        * 0.05D;
+
+        itemEntity.setDeltaMovement(
+                movimientoX,
+                0.2D,
+                movimientoZ
+        );
+
+        level.addFreshEntity(
+                itemEntity
+        );
     }
 }

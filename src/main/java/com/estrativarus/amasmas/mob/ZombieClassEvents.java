@@ -1158,9 +1158,6 @@ public class ZombieClassEvents {
 
         zombie.fallDistance =
                 0.0F;
-
-        zombie.hurtMarked =
-                true;
     }
 
     private ZombieClassEvents() {

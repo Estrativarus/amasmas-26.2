@@ -13,6 +13,7 @@ import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.event.entity.player.PlayerEvent;
 import net.neoforged.neoforge.event.tick.PlayerTickEvent;
+import net.minecraft.world.entity.item.ItemEntity;
 
 @EventBusSubscriber(modid = Amasmas.MOD_ID)
 public final class LockedInventoryEvents {
@@ -229,10 +230,67 @@ public final class LockedInventoryEvents {
             return;
         }
 
-        player.drop(
-                stack,
-                false
+        if (!(player.level()
+                instanceof ServerLevel level)) {
+
+            return;
+        }
+
+        soltarJuntoAlJugador(
+                level,
+                player,
+                stack
         );
+    }
+
+    private static void soltarJuntoAlJugador(
+            ServerLevel level,
+            ServerPlayer player,
+            ItemStack stack
+    ) {
+
+        if (stack.isEmpty()) {
+            return;
+        }
+
+        ItemEntity itemEntity =
+                new ItemEntity(
+                        level,
+                        player.getX(),
+                        player.getY() + 0.5D,
+                        player.getZ(),
+                        stack.copy()
+                );
+
+        itemEntity.setDefaultPickUpDelay();
+
+        double movimientoX =
+                level.getRandom()
+                        .nextGaussian()
+                        * 0.05D;
+
+        double movimientoZ =
+                level.getRandom()
+                        .nextGaussian()
+                        * 0.05D;
+
+        itemEntity.setDeltaMovement(
+                movimientoX,
+                0.2D,
+                movimientoZ
+        );
+
+        boolean anadido =
+                level.addFreshEntity(
+                        itemEntity
+                );
+
+        if (anadido) {
+
+            stack.setCount(
+                    0
+            );
+        }
     }
 
     private static void combinarConPilasExistentes(

@@ -22,7 +22,7 @@ import net.neoforged.neoforge.event.entity.living.LivingDeathEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerInteractEvent;
 import net.neoforged.neoforge.event.tick.EntityTickEvent;
 import net.neoforged.neoforge.event.entity.EntityInvulnerabilityCheckEvent;
-
+import net.minecraft.world.entity.item.ItemEntity;
 
 import java.util.UUID;
 
@@ -339,9 +339,10 @@ public class TamedAllayEvents {
                  * Si no hay espacio, cae al suelo.
                  */
                 if (!player.getInventory().add(cuenco)) {
-                    player.drop(
-                            cuenco,
-                            false
+                    soltarJuntoAlJugador(
+                            level,
+                            player,
+                            cuenco
                     );
                 }
             }
@@ -443,9 +444,10 @@ public class TamedAllayEvents {
                  * caerá al suelo junto al jugador.
                  */
                 if (!player.getInventory().add(armaAnterior)) {
-                    player.drop(
-                            armaAnterior,
-                            false
+                    soltarJuntoAlJugador(
+                            level,
+                            player,
+                            armaAnterior
                     );
                 }
             }
@@ -744,10 +746,6 @@ public class TamedAllayEvents {
 
         if (ataqueExitoso) {
 
-            allay.swing(
-                    InteractionHand.MAIN_HAND
-            );
-
             allay.playSound(
                     SoundEvents.PLAYER_ATTACK_STRONG,
                     0.8F,
@@ -888,6 +886,49 @@ public class TamedAllayEvents {
 
         event.setInvulnerable(false);
     }
+
+    private static void soltarJuntoAlJugador(
+            ServerLevel level,
+            ServerPlayer player,
+            ItemStack stack
+    ) {
+
+        if (stack.isEmpty()) {
+            return;
+        }
+
+        ItemEntity itemEntity =
+                new ItemEntity(
+                        level,
+                        player.getX(),
+                        player.getY() + 0.5D,
+                        player.getZ(),
+                        stack.copy()
+                );
+
+        itemEntity.setDefaultPickUpDelay();
+
+        double movimientoX =
+                level.getRandom()
+                        .nextGaussian()
+                        * 0.05D;
+
+        double movimientoZ =
+                level.getRandom()
+                        .nextGaussian()
+                        * 0.05D;
+
+        itemEntity.setDeltaMovement(
+                movimientoX,
+                0.2D,
+                movimientoZ
+        );
+
+        level.addFreshEntity(
+                itemEntity
+        );
+    }
+
     private TamedAllayEvents() {
     }
 }

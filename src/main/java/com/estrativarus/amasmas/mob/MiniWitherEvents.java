@@ -660,9 +660,6 @@ public final class MiniWitherEvents {
                 EMPUJE_VERTICAL,
                 empujeZ
         );
-
-        victima.hurtMarked =
-                true;
     }
 
     @SubscribeEvent

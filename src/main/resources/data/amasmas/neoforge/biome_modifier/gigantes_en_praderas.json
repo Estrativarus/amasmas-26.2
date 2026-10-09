@@ -5,8 +5,7 @@
     {
       "type": "amasmas:gigante",
       "weight": 50,
-      "minCount": 1,
-      "maxCount": 1
+      "count": 1
     }
   ]
 }

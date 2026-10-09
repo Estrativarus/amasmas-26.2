@@ -1401,9 +1401,6 @@ public final class WingedDemonAttackEvents {
                 )
         );
 
-        dragon.hurtMarked =
-                true;
-
         ATAQUES_SEIS_ACTIVOS.put(
                 dragon.getUUID(),
                 new AtaqueSeisEstado(
@@ -1503,8 +1500,7 @@ public final class WingedDemonAttackEvents {
                 )
         );
 
-        dragon.hurtMarked =
-                true;
+
 
         level.sendParticles(
                 ParticleTypes.SMOKE,
