@@ -78,6 +78,13 @@ public final class ModCreativeTabs {
                                                 ModItems.BOLSA_ENDER.get()
                                         );
 
+                                        output.accept(
+                                                ModItems.ALA_MURCIELAGO.get()
+                                        );
+
+                                        output.accept(
+                                                ModItems.FLECHA_COMPRIMIDA.get()
+                                        );
                                     }
                             )
 

@@ -18,5 +18,7 @@
   "entity.amasmas.gigante": "Giant",
   "item.amasmas.flecha_resonantita": "Resonantite Arrow",
   "enchantment.amasmas.espejismo": "Mirage",
-  "enchantment.amasmas.espejismo.desc": "Reduces the distance at which creatures detect the user by 25%."
+  "enchantment.amasmas.espejismo.desc": "Reduces the distance at which creatures detect the user by 25%.",
+  "item.amasmas.ala_murcielago": "Bat Wings",
+  "item.amasmas.flecha_comprimida": "Compressed Arrow"
 }

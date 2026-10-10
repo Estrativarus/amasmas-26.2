@@ -18,5 +18,7 @@
     "entity.amasmas.gigante": "Gigante",
     "item.amasmas.flecha_resonantita": "Flecha de Resonantita",
     "enchantment.amasmas.espejismo": "Espejismo",
-    "enchantment.amasmas.espejismo.desc": "Reduce en un 25% la distancia desde la que las criaturas detectan al portador."
+    "enchantment.amasmas.espejismo.desc": "Reduce en un 25% la distancia desde la que las criaturas detectan al portador.",
+    "item.amasmas.ala_murcielago": "Alas de Murciélago",
+    "item.amasmas.flecha_comprimida": "Flecha Comprimida"
   }

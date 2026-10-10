@@ -215,6 +215,26 @@ public class ModItems {
                                     properties.stacksTo(64)
                             )
             );
+
+    public static final DeferredItem<Item>
+            ALA_MURCIELAGO =
+            ITEMS.registerItem(
+                    "ala_murcielago",
+                    properties ->
+                            new Item(
+                                    properties.stacksTo(64)
+                            )
+            );
+
+    public static final DeferredItem<CompressedArrowItem>
+            FLECHA_COMPRIMIDA =
+            ITEMS.registerItem(
+                    "flecha_comprimida",
+                    properties ->
+                            new CompressedArrowItem(
+                                    properties.stacksTo(64)
+                            )
+            );
     /*
      * Conecta el registro de objetos con el bus del mod.
      */

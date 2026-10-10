@@ -1,0 +1,19 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "W",
+    "B",
+    "A"
+  ],
+  "key": {
+    "W": "minecraft:wind_charge",
+    "B": "minecraft:breeze_rod",
+    "A": "amasmas:ala_murcielago"
+  },
+  "result": {
+    "id": "amasmas:flecha_comprimida",
+    "count": 8
+  },
+  "show_notification": true
+}

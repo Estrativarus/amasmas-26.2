@@ -45,8 +45,72 @@ public final class ResonantiteArrowRecipe
             Level level
     ) {
 
-        if (level.isClientSide()) {
+        if (input.ingredientCount() != 3) {
             return false;
+        }
+
+        boolean ingredientesCorrectos =
+                false;
+
+        /*
+         * Minecraft puede recortar las columnas vacías
+         * y representar esta receta vertical como 1 x 3.
+         */
+        if (input.width() == 1
+                && input.height() == 3) {
+
+            ingredientesCorrectos =
+                    input.getItem(0).is(
+                            ModItems.FRAGMENTO_RESONANTITA.get()
+                    )
+
+                            && input.getItem(1).is(
+                            Items.BLAZE_ROD
+                    )
+
+                            && input.getItem(2).is(
+                            Items.TWISTING_VINES
+                    );
+        }
+
+        /*
+         * Variante de respaldo por si la versión entrega
+         * la cuadrícula completa de 3 x 3.
+         */
+        if (input.width() == 3
+                && input.height() == 3) {
+
+            ingredientesCorrectos =
+                    input.getItem(1).is(
+                            ModItems.FRAGMENTO_RESONANTITA.get()
+                    )
+
+                            && input.getItem(4).is(
+                            Items.BLAZE_ROD
+                    )
+
+                            && input.getItem(7).is(
+                            Items.TWISTING_VINES
+                    )
+
+                            && input.getItem(0).isEmpty()
+                            && input.getItem(2).isEmpty()
+                            && input.getItem(3).isEmpty()
+                            && input.getItem(5).isEmpty()
+                            && input.getItem(6).isEmpty()
+                            && input.getItem(8).isEmpty();
+        }
+
+        if (!ingredientesCorrectos) {
+            return false;
+        }
+
+        /*
+         * El cliente necesita considerar la receta válida
+         * para mostrar visualmente el resultado.
+         */
+        if (level.isClientSide()) {
+            return true;
         }
 
         if (level.getServer() == null) {
@@ -58,67 +122,7 @@ public final class ResonantiteArrowRecipe
                         .get(level.getServer())
                         .getDiaActual();
 
-        if (diaActual < DIA_INICIO) {
-            return false;
-        }
-
-        if (input.width() != 3
-                || input.height() != 3) {
-
-            return false;
-        }
-
-        for (int slot = 0;
-             slot < 9;
-             slot++) {
-
-            ItemStack stack =
-                    input.getItem(
-                            slot
-                    );
-
-            if (slot == 1) {
-
-                if (!stack.is(
-                        ModItems.FRAGMENTO_RESONANTITA.get()
-                )) {
-
-                    return false;
-                }
-
-                continue;
-            }
-
-            if (slot == 4) {
-
-                if (!stack.is(
-                        Items.BLAZE_ROD
-                )) {
-
-                    return false;
-                }
-
-                continue;
-            }
-
-            if (slot == 7) {
-
-                if (!stack.is(
-                        Items.TWISTING_VINES
-                )) {
-
-                    return false;
-                }
-
-                continue;
-            }
-
-            if (!stack.isEmpty()) {
-                return false;
-            }
-        }
-
-        return true;
+        return diaActual >= DIA_INICIO;
     }
 
     @Override
@@ -127,7 +131,8 @@ public final class ResonantiteArrowRecipe
     ) {
 
         return new ItemStack(
-                ModItems.FLECHA_RESONANTITA.get()
+                ModItems.FLECHA_RESONANTITA.get(),
+                8
         );
     }
 
