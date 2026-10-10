@@ -11,7 +11,8 @@
     "WitherBossAccessor",
     "MiniWitherBlockDestructionMixin",
     "MobGoalSelectorAccessor",
-    "CreeperPoweredAccessor"
+    "CreeperPoweredAccessor",
+    "ServerLevelGameEventMixin"
   ],
   "injectors": {
     "defaultRequire": 1

@@ -9,8 +9,9 @@ import net.neoforged.neoforge.registries.DeferredRegister;
 
 public final class ModRecipeSerializers {
 
-    private static final DeferredRegister<RecipeSerializer<?>>
-            SERIALIZERS =
+    public static final DeferredRegister<
+            RecipeSerializer<?>
+            > RECIPE_SERIALIZERS =
             DeferredRegister.create(
                     Registries.RECIPE_SERIALIZER,
                     Amasmas.MOD_ID
@@ -20,7 +21,7 @@ public final class ModRecipeSerializers {
             RecipeSerializer<?>,
             RecipeSerializer<NetheriteAppleRecipe>
             > MANZANA_NETHERITA =
-            SERIALIZERS.register(
+            RECIPE_SERIALIZERS.register(
                     "manzana_netherita",
                     () -> new RecipeSerializer<>(
                             NetheriteAppleRecipe.CODEC,
@@ -32,7 +33,7 @@ public final class ModRecipeSerializers {
             RecipeSerializer<?>,
             RecipeSerializer<ChorusFlowerStewRecipe>
             > CHORUS_FLOWER_STEW =
-            SERIALIZERS.register(
+            RECIPE_SERIALIZERS.register(
                     "chorus_flower_stew",
                     () -> new RecipeSerializer<>(
                             ChorusFlowerStewRecipe.CODEC,
@@ -40,15 +41,26 @@ public final class ModRecipeSerializers {
                     )
             );
 
+    public static final DeferredHolder<
+            RecipeSerializer<?>,
+            RecipeSerializer<ResonantiteArrowRecipe>
+            > FLECHA_RESONANTITA =
+            RECIPE_SERIALIZERS.register(
+                    "flecha_resonantita",
+                    () -> new RecipeSerializer<>(
+                            ResonantiteArrowRecipe.CODEC,
+                            ResonantiteArrowRecipe.STREAM_CODEC
+                    )
+            );
+
     public static void register(
             IEventBus modEventBus
     ) {
 
-        SERIALIZERS.register(
+        RECIPE_SERIALIZERS.register(
                 modEventBus
         );
     }
-
 
     private ModRecipeSerializers() {
     }

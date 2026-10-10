@@ -206,6 +206,15 @@ public class ModItems {
                                             .fireResistant()
                             )
             );
+    public static final DeferredItem<ResonantiteArrowItem>
+            FLECHA_RESONANTITA =
+            ITEMS.registerItem(
+                    "flecha_resonantita",
+                    properties ->
+                            new ResonantiteArrowItem(
+                                    properties.stacksTo(64)
+                            )
+            );
     /*
      * Conecta el registro de objetos con el bus del mod.
      */

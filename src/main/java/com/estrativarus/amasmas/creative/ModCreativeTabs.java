@@ -57,12 +57,19 @@ public final class ModCreativeTabs {
                                         output.accept(
                                                 ModItems.ARCO_RESONANTITA.get()
                                         );
+
+                                        output.accept(
+                                                ModItems.FLECHA_RESONANTITA.get()
+                                        );
+
                                         output.accept(
                                                 ModItems.CHORUS_FLOWER_STEW.get()
                                         );
+
                                         output.accept(
                                                 ModItems.ROPAJE_GIGANTE.get()
                                         );
+
                                         output.accept(
                                                 ModItems.BOLSA_GIGANTE.get()
                                         );
@@ -70,6 +77,7 @@ public final class ModCreativeTabs {
                                         output.accept(
                                                 ModItems.BOLSA_ENDER.get()
                                         );
+
                                     }
                             )
 
