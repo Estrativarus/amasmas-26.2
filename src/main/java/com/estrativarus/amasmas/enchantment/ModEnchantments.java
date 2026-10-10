@@ -6,18 +6,24 @@ import net.minecraft.resources.Identifier;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.item.enchantment.Enchantment;
 
-public class ModEnchantments {
+public final class ModEnchantments {
 
-    /*
-     * Clave utilizada para localizar el encantamiento
-     * amasmas:drenaje dentro del registro.
-     */
     public static final ResourceKey<Enchantment> DRENAJE =
             ResourceKey.create(
                     Registries.ENCHANTMENT,
                     Identifier.fromNamespaceAndPath(
                             Amasmas.MOD_ID,
                             "drenaje"
+                    )
+            );
+
+    public static final ResourceKey<Enchantment>
+            ESPEJISMO =
+            ResourceKey.create(
+                    Registries.ENCHANTMENT,
+                    Identifier.fromNamespaceAndPath(
+                            Amasmas.MOD_ID,
+                            "espejismo"
                     )
             );
 

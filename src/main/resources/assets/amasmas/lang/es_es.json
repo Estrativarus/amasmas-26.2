@@ -16,5 +16,7 @@
     "item.amasmas.bolsa_ender": "Bolsa del Ender",
     "container.amasmas.bolsa_ender": "Cofre de Ender",
     "entity.amasmas.gigante": "Gigante",
-    "item.amasmas.flecha_resonantita": "Flecha de Resonantita"
+    "item.amasmas.flecha_resonantita": "Flecha de Resonantita",
+    "enchantment.amasmas.espejismo": "Espejismo",
+    "enchantment.amasmas.espejismo.desc": "Reduce en un 25% la distancia desde la que las criaturas detectan al portador."
   }

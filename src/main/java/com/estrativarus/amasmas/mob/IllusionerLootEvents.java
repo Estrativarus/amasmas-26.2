@@ -1,6 +1,7 @@
 package com.estrativarus.amasmas.mob;
 
 import com.estrativarus.amasmas.Amasmas;
+import com.estrativarus.amasmas.enchantment.ModEnchantments;
 import net.minecraft.core.Holder;
 import net.minecraft.core.Registry;
 import net.minecraft.core.registries.Registries;
@@ -9,14 +10,13 @@ import net.minecraft.world.entity.EntityTypes;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 import net.minecraft.world.item.enchantment.Enchantment;
-import net.minecraft.world.item.enchantment.Enchantments;
+import net.minecraft.world.item.enchantment.EnchantmentHelper;
 import net.neoforged.bus.api.EventPriority;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.event.entity.living.LivingDropsEvent;
-import net.minecraft.world.item.Items;
-import net.minecraft.world.item.enchantment.EnchantmentHelper;
 
 @EventBusSubscriber(modid = Amasmas.MOD_ID)
 public final class IllusionerLootEvents {
@@ -24,8 +24,8 @@ public final class IllusionerLootEvents {
     private static final float PROBABILIDAD_LIBRO =
             0.50F;
 
-    private static final int NIVEL_SAQUEO =
-            5;
+    private static final int NIVEL_ESPEJISMO =
+            1;
 
     @SubscribeEvent(priority = EventPriority.LOWEST)
     public static void onIllusionerDrops(
@@ -56,7 +56,7 @@ public final class IllusionerLootEvents {
         }
 
         ItemStack libro =
-                crearLibroSaqueo(
+                crearLibroEspejismo(
                         level
                 );
 
@@ -74,7 +74,7 @@ public final class IllusionerLootEvents {
         );
     }
 
-    private static ItemStack crearLibroSaqueo(
+    private static ItemStack crearLibroEspejismo(
             ServerLevel level
     ) {
 
@@ -85,9 +85,9 @@ public final class IllusionerLootEvents {
                                 Registries.ENCHANTMENT
                         );
 
-        Holder.Reference<Enchantment> saqueo =
+        Holder.Reference<Enchantment> espejismo =
                 registro.getOrThrow(
-                        Enchantments.LOOTING
+                        ModEnchantments.ESPEJISMO
                 );
 
         ItemStack libro =
@@ -99,8 +99,8 @@ public final class IllusionerLootEvents {
                 libro,
                 encantamientos ->
                         encantamientos.set(
-                                saqueo,
-                                NIVEL_SAQUEO
+                                espejismo,
+                                NIVEL_ESPEJISMO
                         )
         );
 
